@@ -24,3 +24,4 @@ df_comdty = get_commodity_codes_df()
 create_folders_for_comdty_data(df_comdty)
 
 print(df_comdty)
+
