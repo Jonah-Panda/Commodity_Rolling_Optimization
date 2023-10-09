@@ -80,21 +80,17 @@ def open_sheet(sheet_name):
     df = df.iloc[:, 1:]
 
     return df
+def extract_contracts():
+    df_comdty = get_commodity_codes_df()
+    create_folders_for_comdty_data(df_comdty)
 
+    print(df_comdty)
 
-# sheet_name = "NG"
-# df = open_sheet(sheet_name)
-# export_contracts(df, sheet_name)
-# exit()
+    for index, row in df_comdty.iterrows():
+        sheet_name = row["Code"]
+        print(sheet_name)
+        df = open_sheet(sheet_name)
+        export_contracts(df, sheet_name)
+    return
 
-df_comdty = get_commodity_codes_df()
-create_folders_for_comdty_data(df_comdty)
-
-print(df_comdty)
-
-for index, row in df_comdty.iterrows():
-    sheet_name = row["Code"]
-    print(sheet_name)
-    df = open_sheet(sheet_name)
-    export_contracts(df, sheet_name)
-exit()
+# extract_contracts()
