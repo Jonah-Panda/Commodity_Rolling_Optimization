@@ -32,11 +32,13 @@ def clean_contract2(df, sheet_name):
     df = df.drop(["na_count"], axis=1)
     df['Volume'] = df['Volume'].replace({nan : 0})
 
-    # print(df)
-
     df.reset_index(inplace=True, drop=True)
-    df['Date'] = pd.to_datetime(df['Date'])
 
+    try:
+        df['Date'] = pd.to_datetime(df['Date'])
+    except:
+        df = df.iloc[0:470]
+        df['Date'] = pd.to_datetime(df['Date'])
     # Finding Last Tradable Day for all Securities
     expiry_date = df.loc[0, "Date"]
     string_expiry_date = "{}-{}-{}".format(expiry_date.year, month_zero(expiry_date), day_zero(expiry_date))
@@ -80,10 +82,10 @@ def open_sheet(sheet_name):
     return df
 
 
-sheet_name = "NG"
-df = open_sheet(sheet_name)
-export_contracts(df, sheet_name)
-exit()
+# sheet_name = "NG"
+# df = open_sheet(sheet_name)
+# export_contracts(df, sheet_name)
+# exit()
 
 df_comdty = get_commodity_codes_df()
 create_folders_for_comdty_data(df_comdty)
