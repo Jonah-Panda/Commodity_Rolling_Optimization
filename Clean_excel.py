@@ -25,31 +25,14 @@ def month_zero(x):
 def day_zero(x):
     str_day = str(x.day)
     return str_day if len(str_day) == 2 else '0{}'.format(str_day)
-
-
-# df_comdty = get_commodity_codes_df()
-# create_folders_for_comdty_data(df_comdty)
-
-# print(df_comdty)
-
-def open_sheet(sheet_name):
-    # Opening Sheet
-    file_name = "{}\FNCE 449 - Final Project.xlsx".format(cwd)
-    df = pd.read_excel(io=file_name, sheet_name=sheet_name)
-
-    # Removing first column
-    df = df.iloc[:, 1:]
-
-    return df
-
-df = open_sheet("CT")
-
 def clean_contract2(df, sheet_name):
     # Removing rows with no data
     df["na_count"] = df.isna().sum(axis=1)
     df = df[df.na_count != 3]
     df = df.drop(["na_count"], axis=1)
     df['Volume'] = df['Volume'].replace({nan : 0})
+
+    # print(df)
 
     df.reset_index(inplace=True, drop=True)
     df['Date'] = pd.to_datetime(df['Date'])
@@ -61,7 +44,6 @@ def clean_contract2(df, sheet_name):
     if expiry_date <= datetime.datetime(2023, 10, 5):
         df.to_csv("{}\Data\{}\{}.csv".format(cwd, sheet_name, string_expiry_date))
     return df
-
 def export_contracts(df, sheet_name):
     col_names = df.columns.tolist()
     for i in range(0, len(col_names), 3):
@@ -87,5 +69,30 @@ def export_contracts(df, sheet_name):
             clean_contract2(contract_df, sheet_name)
 
     return
+def open_sheet(sheet_name):
+    # Opening Sheet
+    file_name = "{}\FNCE 449 - Final Project.xlsx".format(cwd)
+    df = pd.read_excel(io=file_name, sheet_name=sheet_name)
 
-export_contracts(df, "CT")
+    # Removing first column
+    df = df.iloc[:, 1:]
+
+    return df
+
+
+sheet_name = "NG"
+df = open_sheet(sheet_name)
+export_contracts(df, sheet_name)
+exit()
+
+df_comdty = get_commodity_codes_df()
+create_folders_for_comdty_data(df_comdty)
+
+print(df_comdty)
+
+for index, row in df_comdty.iterrows():
+    sheet_name = row["Code"]
+    print(sheet_name)
+    df = open_sheet(sheet_name)
+    export_contracts(df, sheet_name)
+exit()
