@@ -1,18 +1,22 @@
 import pandas as pd
 import os
 import numpy as np
+from math import sqrt
 
 cwd = os.getcwd()
-com_code = "CL"
+com_code = "SI"
 
 def single_day_roll(dte_roll, com_code):
-
+    # gets list of all futures contracts for underlying commodity
     contract_list = os.listdir("{}\Data\{}".format(cwd, com_code))
-    # contract_list = contract_list[0:5]
 
     # getting initial future contract df
     df = pd.read_csv("{}\Data\{}\{}".format(cwd, com_code, contract_list[0]), index_col=0)
-    start_date = df.iloc[90, 0]
+    try:
+        start_date = df.iloc[90, 0]
+    except:
+        start_date = df.iloc[-5, 0]
+    df = df[df['Date'] > start_date]
 
     # itterating through all contracts to create continuous timeframe.
     for i in range(1, len(contract_list)):
@@ -23,23 +27,87 @@ def single_day_roll(dte_roll, com_code):
             df2 = df2[1:]
 
         df = df.merge(df2, on='Date', how='left')
-        df = df[df['Date'] > start_date]
         df['Close_y'] = df['Close_y'].fillna(0)
         df['Volume_y'] = df['Volume_y'].fillna(0)
 
         roll_date = df.iloc[dte_roll, 0]
+        new_contract_weight = df.loc[dte_roll, 'Close_x'] / df.loc[dte_roll, 'Close_y']
+        # print(new_contract_weight)
         df['Weight1'] = np.where(df['Date'] < roll_date, 1, 0)
-        df['Weight2'] = np.where(df['Date'] >= roll_date, 1, 0)
+        df['Weight2'] = np.where(df['Date'] >= roll_date, new_contract_weight, 0)
         df['Close'] = df['Close_x'] * df['Weight1'] + df['Close_y'] * df['Weight2']
         df['Volume'] = round(df['Volume_x'] * df['Weight1'] + df['Volume_y'] * df['Weight2'], 0)
+        # print(df.iloc[dte_roll]) # checks that the contract roll is the same by dollars
         df = df[['Date', 'Close', 'Volume']]
 
         df2 = df2[df2['Date'] > df['Date'].max()]
+        df2['Close'] = df2['Close'] * new_contract_weight
         df = pd.concat([df2, df])
         df.reset_index(inplace=True, drop=True)
 
     return df
 
+def multi_day_roll(n_days, last_dte_roll, com_code):
+    df = single_day_roll(last_dte_roll, com_code)
 
-df = single_day_roll(3, com_code)
-print(df)
+    for i in range(last_dte_roll+1, last_dte_roll+n_days):
+        df2 = single_day_roll(i, com_code)
+        df2 = df2[['Date', 'Close']]
+
+        # Merging different individual day roll
+        df = df.merge(df2, on='Date', how='left')
+
+        # Adding close to cumulative sum that will be divided after cumulative sum
+        df['Close'] = df['Close_x'] + df['Close_y']
+        df = df[['Date', 'Close', 'Volume']]
+
+    # Dividing cumulaitve sum by number of days to roll over
+    df['Close'] = df['Close'] / n_days
+
+    return df
+
+def get_mean_variance(df):
+    df['Close_minus_1'] = df['Close'].shift(-1)
+    df['Return'] = (df['Close'] - df['Close_minus_1']) / df['Close_minus_1']
+
+    mean = df.loc[0:len(df)-2, 'Return'].mean()
+    var = df.loc[0:len(df)-2, 'Return'].var()
+    meanVariance = mean/(sqrt(252) * var)
+    return meanVariance
+
+def get_commodity_codes_df():
+    file_name = "{}\FNCE 449 - Final Project.xlsx".format(cwd)
+    sheet_name = "Building Table"
+    df = pd.read_excel(io=file_name, sheet_name=sheet_name, header=None, skiprows=27)
+    df = df[[0, 1]]
+    df.columns = ["Commodity", "Code"]
+    df = df[0:27]
+    return df
+
+
+# df = single_day_roll(3, com_code)
+# print(df)
+
+# df = multi_day_roll(3, 3, com_code)
+# print(df)
+
+
+
+
+results_df = get_commodity_codes_df()
+for i in range(1, 45):
+    results_df["{}".format(i)] = 0
+
+for index, row in results_df.iterrows():
+    com_code = row['Code']
+    print('{} - {}%'.format(com_code, round(100*index/len(results_df), 2)))
+    for i in range(1, 45):
+        try:
+            df = single_day_roll(i, com_code)
+            meanVar = get_mean_variance(df)
+        except:
+            meanVar = 0
+        results_df.loc[index, "{}".format(i)] = meanVar
+
+results_df.to_csv('{}\single_day_MV.csv'.format(cwd))
+print(results_df)
