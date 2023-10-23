@@ -4,7 +4,7 @@ import numpy as np
 from math import sqrt
 
 cwd = os.getcwd()
-com_code = "SI"
+# com_code = "SI"
 
 def single_day_roll(dte_roll, com_code):
     # gets list of all futures contracts for underlying commodity
@@ -82,6 +82,12 @@ def get_commodity_codes_df():
     df = df[[0, 1]]
     df.columns = ["Commodity", "Code"]
     df = df[0:27]
+
+    # Dropping rows without enough liquidity for roll calculations.
+    a = ["CC", "LB", "LS", "JO", "XB", "SM"] 
+    df = df[~df['Code'].isin(a)]
+    df.reset_index(inplace=True, drop=True)
+
     return df
 
 
@@ -94,20 +100,53 @@ def get_commodity_codes_df():
 
 
 
-results_df = get_commodity_codes_df()
-for i in range(1, 45):
-    results_df["{}".format(i)] = 0
+# results_df = get_commodity_codes_df()
+# for i in range(1, 35):
+#     results_df["{}".format(i)] = 0
 
-for index, row in results_df.iterrows():
-    com_code = row['Code']
-    print('{} - {}%'.format(com_code, round(100*index/len(results_df), 2)))
-    for i in range(1, 45):
+# for index, row in results_df.iterrows():
+#     com_code = row['Code']
+#     print('{} - {}%'.format(com_code, round(100*index/len(results_df), 2)))
+#     for i in range(1, 35):
+#         try:
+#             df = single_day_roll(i, com_code)
+#             meanVar = get_mean_variance(df)
+#         except:
+#             meanVar = 0
+#         results_df.loc[index, "{}".format(i)] = meanVar
+
+# results_df.to_csv('{}\single_day_MV.csv'.format(cwd))
+# print(results_df)
+
+rows = []
+start_roll_date = []
+end_roll_date = []
+for i in range(1, 35):
+    for j in range(1, 35):
+        if i < j:
+            rows = rows + ["{}-{}".format(i, j)]
+            start_roll_date = start_roll_date + [i]
+            end_roll_date = end_roll_date + [j]
+
+Com_codes = get_commodity_codes_df()
+Com_codes = Com_codes['Code'].tolist()
+
+df = pd.DataFrame(columns=Com_codes, index=rows)
+print(df)
+
+for code in Com_codes:
+    print()
+    for id in rows:
+        index = rows.index(id)
+        print('{} - {}%'.format(code, round(100*index/len(rows), 2)), end='\r')
         try:
-            df = single_day_roll(i, com_code)
-            meanVar = get_mean_variance(df)
+            temp_df = multi_day_roll(start_roll_date[index], end_roll_date[index], code)
+            meanVar = get_mean_variance(temp_df)
         except:
             meanVar = 0
-        results_df.loc[index, "{}".format(i)] = meanVar
+        df.loc[id, "{}".format(code)] = meanVar
 
-results_df.to_csv('{}\single_day_MV.csv'.format(cwd))
-print(results_df)
+df.to_csv('{}\Multi_day_MV.csv'.format(cwd))
+print(df)
+
+exit()
