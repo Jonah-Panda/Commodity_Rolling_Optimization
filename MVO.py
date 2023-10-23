@@ -100,23 +100,23 @@ def get_commodity_codes_df():
 
 
 
-# results_df = get_commodity_codes_df()
-# for i in range(1, 35):
-#     results_df["{}".format(i)] = 0
+results_df = get_commodity_codes_df()
+for i in range(1, 35):
+    results_df["{}".format(i)] = 0
 
-# for index, row in results_df.iterrows():
-#     com_code = row['Code']
-#     print('{} - {}%'.format(com_code, round(100*index/len(results_df), 2)))
-#     for i in range(1, 35):
-#         try:
-#             df = single_day_roll(i, com_code)
-#             meanVar = get_mean_variance(df)
-#         except:
-#             meanVar = 0
-#         results_df.loc[index, "{}".format(i)] = meanVar
+for index, row in results_df.iterrows():
+    com_code = row['Code']
+    print('{} - {}%'.format(com_code, round(100*index/len(results_df), 2)))
+    for i in range(1, 35):
+        try:
+            df = single_day_roll(i, com_code)
+            meanVar = get_mean_variance(df)
+        except:
+            meanVar = 0
+        results_df.loc[index, "{}".format(i)] = meanVar
 
-# results_df.to_csv('{}\single_day_MV.csv'.format(cwd))
-# print(results_df)
+results_df.to_csv('{}\single_day_MV.csv'.format(cwd))
+print(results_df)
 
 rows = []
 start_roll_date = []
@@ -138,7 +138,13 @@ for code in Com_codes:
     print()
     for id in rows:
         index = rows.index(id)
+
+        if index % 5 == 0:
+            df.to_csv('{}\Multi_day_MV.csv'.format(cwd))
+            print(df)
+
         print('{} - {}%'.format(code, round(100*index/len(rows), 2)), end='\r')
+
         try:
             temp_df = multi_day_roll(start_roll_date[index], end_roll_date[index], code)
             meanVar = get_mean_variance(temp_df)
