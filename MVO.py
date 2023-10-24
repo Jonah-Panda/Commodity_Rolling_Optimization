@@ -115,7 +115,7 @@ for index, row in results_df.iterrows():
             meanVar = 0
         results_df.loc[index, "{}".format(i)] = meanVar
 
-results_df.to_csv('{}\single_day_MV.csv'.format(cwd))
+# results_df.to_csv('{}\single_day_MV.csv'.format(cwd))
 print(results_df)
 
 rows = []
@@ -152,7 +152,7 @@ for code in Com_codes:
             meanVar = 0
         df.loc[id, "{}".format(code)] = meanVar
 
-df.to_csv('{}\Multi_day_MV.csv'.format(cwd))
+#df.to_csv('{}\Multi_day_MV.csv'.format(cwd))
 print(df)
 
 exit()
