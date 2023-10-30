@@ -18,7 +18,6 @@ def day_zero(x):
     return str_day if len(str_day) == 2 else '0{}'.format(str_day)
 def dt_to_string(date):
     return "{}-{}-{}".format(date.year, month_zero(date), day_zero(date))
-
 def merge_futures_contracts(com_code):
     datelist = pd.bdate_range(start=START_DATE, end=END_DATE)
     df = pd.DataFrame(datelist, columns=['Date'])
@@ -43,9 +42,6 @@ def merge_futures_contracts(com_code):
     df.reset_index(inplace=True, drop=True)
     df.drop(columns=['Sum'], inplace=True)
     return df
-
-df_com = merge_futures_contracts(com_code)
-
 def single_day_roll(dte_roll, df_com):
     col_names = df_com.columns.tolist()[1:]
     df = pd.DataFrame(columns=['Date', 'Close'])
@@ -80,38 +76,30 @@ def single_day_roll(dte_roll, df_com):
         df = pd.concat([df, df2])
     df.dropna(inplace=True)
     return df
-
-# roll_date = datetime.datetime(2020, 8, 12)
-# col_name = ['2020-07-21']
-# cl = df_com.loc[df_com['Date'] == roll_date, '{}'.format(col_name[0])]
-# print(np.isnan(cl))
-# if np.isnan(cl).bool():
-#     print("YAY")
-# exit()
-
-df = single_day_roll(21, df_com)  
-print(df)
-exit()
-def multi_day_roll(n_days, last_dte_roll, com_code):
-    df = single_day_roll(last_dte_roll, com_code)
+def multi_day_roll(n_days, last_dte_roll, df_com):
+    df_multi = single_day_roll(last_dte_roll, df_com)
+    if type(df_multi) == int:
+        return 0
 
     for i in range(last_dte_roll+1, last_dte_roll+n_days):
-        df2 = single_day_roll(i, com_code)
-        df2 = df2[['Date', 'Close']]
+        df2_multi = single_day_roll(i, df_com)
+        if type(df2_multi) == int:
+            return 0
 
         # Merging different individual day roll
-        df = df.merge(df2, on='Date', how='left')
+        df_multi = df_multi.merge(df2_multi, on='Date', how='left')
 
         # Adding close to cumulative sum that will be divided after cumulative sum
-        df['Close'] = df['Close_x'] + df['Close_y']
-        df = df[['Date', 'Close', 'Volume']]
+        df_multi['Close'] = df_multi['Close_x'] + df_multi['Close_y']
+        df_multi = df_multi[['Date', 'Close']]
 
     # Dividing cumulaitve sum by number of days to roll over
-    df['Close'] = df['Close'] / n_days
+    df_multi['Close'] = df_multi['Close'] / n_days
 
-    return df
-
+    return df_multi    
 def get_mean_variance(df):
+    if type(df) == int:
+        return 0
     df['Close_minus_1'] = df['Close'].shift(-1)
     df['Return'] = (df['Close'] - df['Close_minus_1']) / df['Close_minus_1']
 
@@ -119,7 +107,6 @@ def get_mean_variance(df):
     var = df.loc[0:len(df)-2, 'Return'].var()
     meanVariance = mean/(sqrt(252) * var)
     return meanVariance
-
 def get_commodity_codes_df():
     file_name = "{}\FNCE 449 - Final Project.xlsx".format(cwd)
     sheet_name = "Building Table"
@@ -136,64 +123,50 @@ def get_commodity_codes_df():
     return df
 
 
-# df = single_day_roll(3, com_code)
+df_com = merge_futures_contracts(com_code)
+
+# df = single_day_roll(5, df_com) 
 # print(df)
-
-# df = multi_day_roll(3, 3, com_code)
-# print(df)
-
-com_code = "SI"
-df = multi_day_roll(15, 20, com_code)
+# print(get_mean_variance(df))
+df = multi_day_roll(4, 19, df_com)
 print(df)
-df = multi_day_roll(14, 21, com_code)
-print(df)
-exit()
-
-
+print(get_mean_variance(df))
 
 
 rows = []
-start_roll_date = []
-end_roll_date = []
 n_days = []
-for i in range(1, 35):
-    for j in range(1, 35):
-        if i < j:
-            rows = rows + ["{}-{}".format(i, j)]
-            start_roll_date = start_roll_date + [i]
-            end_roll_date = end_roll_date + [j]
-            n_days = n_days + [j-i+1]
-    if i > 1:
-        break
+dte = []
+for i in range(1, 25+1):
+    for j in range(1, 25+1):
+        rows = rows + ["{}-{}".format(i, j)]
+        n_days = n_days + [i]
+        dte = dte + [j]
+
+# print(n_days)
+# print(dte)
 
 Com_codes = get_commodity_codes_df()
 Com_codes = Com_codes['Code'].tolist()
 
-
-# df = pd.DataFrame(columns=Com_codes, index=rows)
-# print(df)
-
-df = pd.read_csv('Multi_day_MV.csv', index_col=0)
+df = pd.DataFrame(columns=Com_codes, index=rows)
 
 for code in Com_codes:
     print()
+    df_com = merge_futures_contracts(code)
     for id in rows:
         index = rows.index(id)
+        # print('{} - {}'.format(n_days[index], dte[index]))
 
-        if index % 5 == 0:
-            df.to_csv('{}\Multi_day_MV.csv'.format(cwd))
+        if index % 25 == 0:
+            df.to_csv('{}\Multi_day_MV2.csv'.format(cwd))
             print(df)
 
         print('{} - {}%'.format(code, round(100*index/len(rows), 2)), end='\r')
+        temp_df = multi_day_roll(n_days[index], dte[index], df_com)
+        meanVar = get_mean_variance(temp_df)
 
-        try:
-            temp_df = multi_day_roll(start_roll_date[index], end_roll_date[index], code)
-            meanVar = get_mean_variance(temp_df)
-        except:
-            meanVar = 0
         df.loc[id, "{}".format(code)] = meanVar
 
-#df.to_csv('{}\Multi_day_MV2.csv'.format(cwd))
-print(df)
+    break
 
-exit()
+df.to_csv('{}\Multi_day_MV2.csv'.format(cwd))
