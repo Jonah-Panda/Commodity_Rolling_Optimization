@@ -124,13 +124,10 @@ def get_commodity_codes_df():
 
 
 # df_com = merge_futures_contracts(com_code)
-# df = single_day_roll(5, df_com) 
+# df = multi_day_roll(4, 17, df_com)
 # print(df)
 # print(get_mean_variance(df))
-df = multi_day_roll(4, 17, df_com)
-print(df)
-print(get_mean_variance(df))
-exit()
+# exit()
 
 
 rows = []
@@ -147,6 +144,7 @@ for i in range(1, 25+1):
 
 Com_codes = get_commodity_codes_df()
 Com_codes = Com_codes['Code'].tolist()
+Com_codes = reversed(Com_codes)
 
 df = pd.DataFrame(columns=Com_codes, index=rows)
 
@@ -158,7 +156,7 @@ for code in Com_codes:
         # print('{} - {}'.format(n_days[index], dte[index]))
 
         if index % 25 == 0:
-            df.to_csv('{}\Multi_day_MV2.csv'.format(cwd))
+            df.to_csv('{}\Multi_day_MV3.csv'.format(cwd))
             print(df)
 
         print('{} - {}%'.format(code, round(100*index/len(rows), 2)), end='\r')
@@ -168,4 +166,4 @@ for code in Com_codes:
         df.loc[id, "{}".format(code)] = meanVar
 
 
-df.to_csv('{}\Multi_day_MV2.csv'.format(cwd))
+df.to_csv('{}\Multi_day_MV3.csv'.format(cwd))
