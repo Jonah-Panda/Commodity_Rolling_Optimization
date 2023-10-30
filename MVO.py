@@ -97,29 +97,15 @@ def get_commodity_codes_df():
 # df = multi_day_roll(3, 3, com_code)
 # print(df)
 
-df = multi_day_roll(1, 3, "CL")
+com_code = "SI"
+df = multi_day_roll(15, 20, com_code)
 print(df)
-df = single_day_roll(3, "CL")
-# exit()
+df = multi_day_roll(14, 21, com_code)
+print(df)
+exit()
 
 
-# results_df = get_commodity_codes_df()
-# for i in range(1, 35):
-#     results_df["{}".format(i)] = 0
 
-# for index, row in results_df.iterrows():
-#     com_code = row['Code']
-#     print('{} - {}%'.format(com_code, round(100*index/len(results_df), 2)))
-#     for i in range(1, 35):
-#         try:
-#             df = single_day_roll(i, com_code)
-#             meanVar = get_mean_variance(df)
-#         except:
-#             meanVar = 0
-#         results_df.loc[index, "{}".format(i)] = meanVar
-
-# # results_df.to_csv('{}\single_day_MV2.csv'.format(cwd))
-# print(results_df)
 
 rows = []
 start_roll_date = []
@@ -137,10 +123,7 @@ for i in range(1, 35):
 
 Com_codes = get_commodity_codes_df()
 Com_codes = Com_codes['Code'].tolist()
-print(n_days)
-print(start_roll_date)
-print(end_roll_date)
-exit()
+
 
 # df = pd.DataFrame(columns=Com_codes, index=rows)
 # print(df)
