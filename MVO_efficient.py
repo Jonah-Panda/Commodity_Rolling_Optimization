@@ -6,7 +6,7 @@ from math import sqrt
 import datetime
 
 cwd = os.getcwd()
-com_code = "CL"
+com_code = "SI"
 START_DATE = datetime.datetime(2013, 7, 1)
 END_DATE = datetime.datetime(2020, 9, 1)
 
@@ -46,37 +46,51 @@ def merge_futures_contracts(com_code):
 
 df_com = merge_futures_contracts(com_code)
 
-#start_weight = 1 ######
+def single_day_roll(dte_roll, df_com):
+    col_names = df_com.columns.tolist()[1:]
+    df = pd.DataFrame(columns=['Date', 'Close'])
+    df.loc[0, "Date"] = df_com['Date'][0]
+    df.loc[0, "Close"] = df_com['{}'.format(col_names[0])][0]
 
-col_names = df_com.columns.tolist()[1:]
-df = pd.DataFrame(columns=['Date', 'Close'])
-df.loc[0, "Date"] = df_com['Date'][0]
-df.loc[0, "Close"] = df_com['{}'.format(col_names[0])][0]
+    # dte_roll = 5
+    old_contract_weight = 1
+    for i in range(len(col_names)-1):
+        col = col_names[i]
+        ltd = datetime.datetime(int(col[0:4]), int(col[5:7]), int(col[8:10]))
+        df2 = df_com.loc[df_com["Date"] <= ltd, ["Date", "{}".format(col), "{}".format(col_names[i+1])]]
+        df2.interpolate(method='pad', limit=10, inplace=True) # Padding for days with no trading volume
 
-dte_roll = 5
-old_contract_weight = 1
-for i in range(len(col_names)-1):
-    col = col_names[i]
-    ltd = datetime.datetime(int(col[0:4]), int(col[5:7]), int(col[8:10]))
-    df2 = df_com.loc[df_com["Date"] <= ltd, ["Date", "{}".format(col), "{}".format(col_names[i+1])]]
-    df2.interpolate(method='pad', limit=10, inplace=True) # Padding for days with no trading volume
+        roll_index = len(df2) - dte_roll
+        roll_date = df2.loc[roll_index, ["Date"]][0]
 
-    roll_index = len(df2) - dte_roll
-    roll_date = df2.loc[roll_index, ["Date"]][0]
+        # HEY, IF YOU HAVE TIME YOU SHOULD TOTALLY COME BACK AND ADD VOLUME TRIGGERS AND CASH TRIGGERS TO THE MATCHING ALGO SO IT IS ACTUALLY REPRESENTATIVE
+        close2 = df2.loc[df2['Date'] == roll_date, '{}'.format(col_names[i+1])]
+        if np.isnan(close2).bool():
+            return 0
+        new_contract_weight = df2.loc[df2['Date'] == roll_date, '{}'.format(col)] / close2
+        df2['Weight1'] = np.where(df2['Date'] < roll_date, old_contract_weight, 0)
+        df2['Weight2'] = np.where(df2['Date'] >= roll_date, new_contract_weight, 0)
+        old_contract_weight = new_contract_weight
 
-    # HEY, IF YOU HAVE TIME YOU SHOULD TOTALLY COME BACK AND ADD VOLUME TRIGGERS AND CASH TRIGGERS TO THE MATCHING ALGO SO IT IS ACTUALLY REPRESENTATIVE
-    new_contract_weight = df2.loc[df2['Date'] == roll_date, '{}'.format(col)] / df2.loc[df2['Date'] == roll_date, '{}'.format(col_names[i+1])]
-    df2['Weight1'] = np.where(df2['Date'] < roll_date, old_contract_weight, 0)
-    df2['Weight2'] = np.where(df2['Date'] >= roll_date, new_contract_weight, 0)
-    old_contract_weight = new_contract_weight
+        df2['Close'] = df2['{}'.format(col)] * df2['Weight1'] + df2['{}'.format(col_names[i+1])] * df2['Weight2']
+        # print(df2)
+        df2 = df2[['Date', 'Close']]
 
-    df2['Close'] = df2['{}'.format(col)] * df2['Weight1'] + df2['{}'.format(col_names[i+1])] * df2['Weight2']
-    print(df2)
-    df2 = df2[['Date', 'Close']]
+        df2 = df2[df2['Date'] > df['Date'].max()]
+        df = pd.concat([df, df2])
+    df.dropna(inplace=True)
+    return df
 
-    df2 = df2[df2['Date'] > df['Date'].max()]
-    df = pd.concat([df, df2])
-    
+# roll_date = datetime.datetime(2020, 8, 12)
+# col_name = ['2020-07-21']
+# cl = df_com.loc[df_com['Date'] == roll_date, '{}'.format(col_name[0])]
+# print(np.isnan(cl))
+# if np.isnan(cl).bool():
+#     print("YAY")
+# exit()
+
+df = single_day_roll(21, df_com)  
+print(df)
 exit()
 def multi_day_roll(n_days, last_dte_roll, com_code):
     df = single_day_roll(last_dte_roll, com_code)
