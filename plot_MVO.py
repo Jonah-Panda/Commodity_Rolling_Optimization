@@ -2,6 +2,11 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
 import os
+from time import sleep
+# from matplotlib.pyplot import figure
+# plt.rc('axes', labelsize=5)
+# plt.rc('ytick', labelsize=5)
+# plt.rc('xtick', labelsize=5)
 
 cwd = os.getcwd()
 
@@ -27,6 +32,7 @@ def add_rect(x, y, rgb, ax2):
 def show_code_plot(code, df):
     fig2 = plt.figure()
     ax2 = fig2.add_subplot(111, aspect='equal')
+    fig2.set_size_inches(3, 3.0)
 
     df2 = df.loc[:, ['{}'.format(code)]]
     df_max = max(df2['{}'.format(code)])
@@ -53,10 +59,12 @@ for com in com_codes:
     ax2 = show_code_plot(com, multi_df)
     ax2.set_xlim(1,35)
     ax2.set_ylim(1,35)
-    ax2.set_xlabel("Days Rolled")
-    ax2.set_ylabel("Last Day Rolled")
+    ax2.set_xlabel("Days Rolled", fontsize=10)
+    ax2.set_ylabel("Last Day Rolled", fontsize=10)
     ax2.set_title("{}".format(com))
     plt.tight_layout()
     plt.savefig('{}\{}'.format("Images", com))
+    plt.close()
+
 
 # plt.show()
