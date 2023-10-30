@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
+import os
+
+cwd = os.getcwd()
 
 def rgbspectrum(x, min, diff):
     # red = [246, 52, 57]
@@ -12,8 +15,6 @@ def rgbspectrum(x, min, diff):
     g = round(152*pct+52, 0)
     b = round(33*pct+57, 0)
     return [r, g, b]
-
-
 
 def add_rect(x, y, rgb, ax2):
     ax2.add_patch(patches.Rectangle(
@@ -46,20 +47,16 @@ def show_code_plot(code, df):
 
 
 multi_df = pd.read_csv('Multi_day_MV.csv', index_col=0)
-# single_df = pd.read_csv('single_day_MV.csv', index_col=2)
-# single_df.drop(columns=['Unnamed: 0', "Commodity"], inplace=True)
-# single_df = single_df.transpose()
-# single_df['id'] = single_df.index
-# single_df['id'] = single_df['id'].astype(str) + "-" + single_df['id'].astype(str)
-# single_df.set_index(single_df['id'], inplace=True, drop=True)
-# single_df.drop(columns=['id'], inplace=True)
-# df = single_df.append(multi_df)
 
+com_codes = multi_df.columns.tolist()
+for com in com_codes:
+    ax2 = show_code_plot(com, multi_df)
+    ax2.set_xlim(1,35)
+    ax2.set_ylim(1,35)
+    ax2.set_xlabel("Days Rolled")
+    ax2.set_ylabel("Last Day Rolled")
+    ax2.set_title("{}".format(com))
+    plt.tight_layout()
+    plt.savefig('{}\{}'.format("Images", com))
 
-ax2 = show_code_plot("NG", multi_df)
-
-ax2.set_xlim(1,35)
-ax2.set_ylim(1,35)
-ax2.set_xlabel("Days Rolled")
-ax2.set_ylabel("Last Day Rolled")
-plt.show()
+# plt.show()
