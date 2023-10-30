@@ -97,42 +97,55 @@ def get_commodity_codes_df():
 # df = multi_day_roll(3, 3, com_code)
 # print(df)
 
+df = multi_day_roll(1, 3, "CL")
+print(df)
+df = single_day_roll(3, "CL")
+# exit()
 
 
+# results_df = get_commodity_codes_df()
+# for i in range(1, 35):
+#     results_df["{}".format(i)] = 0
 
-results_df = get_commodity_codes_df()
-for i in range(1, 35):
-    results_df["{}".format(i)] = 0
+# for index, row in results_df.iterrows():
+#     com_code = row['Code']
+#     print('{} - {}%'.format(com_code, round(100*index/len(results_df), 2)))
+#     for i in range(1, 35):
+#         try:
+#             df = single_day_roll(i, com_code)
+#             meanVar = get_mean_variance(df)
+#         except:
+#             meanVar = 0
+#         results_df.loc[index, "{}".format(i)] = meanVar
 
-for index, row in results_df.iterrows():
-    com_code = row['Code']
-    print('{} - {}%'.format(com_code, round(100*index/len(results_df), 2)))
-    for i in range(1, 35):
-        try:
-            df = single_day_roll(i, com_code)
-            meanVar = get_mean_variance(df)
-        except:
-            meanVar = 0
-        results_df.loc[index, "{}".format(i)] = meanVar
-
-# results_df.to_csv('{}\single_day_MV.csv'.format(cwd))
-print(results_df)
+# # results_df.to_csv('{}\single_day_MV2.csv'.format(cwd))
+# print(results_df)
 
 rows = []
 start_roll_date = []
 end_roll_date = []
+n_days = []
 for i in range(1, 35):
     for j in range(1, 35):
         if i < j:
             rows = rows + ["{}-{}".format(i, j)]
             start_roll_date = start_roll_date + [i]
             end_roll_date = end_roll_date + [j]
+            n_days = n_days + [j-i+1]
+    if i > 1:
+        break
 
 Com_codes = get_commodity_codes_df()
 Com_codes = Com_codes['Code'].tolist()
+print(n_days)
+print(start_roll_date)
+print(end_roll_date)
+exit()
 
-df = pd.DataFrame(columns=Com_codes, index=rows)
-print(df)
+# df = pd.DataFrame(columns=Com_codes, index=rows)
+# print(df)
+
+df = pd.read_csv('Multi_day_MV.csv', index_col=0)
 
 for code in Com_codes:
     print()
@@ -152,7 +165,7 @@ for code in Com_codes:
             meanVar = 0
         df.loc[id, "{}".format(code)] = meanVar
 
-#df.to_csv('{}\Multi_day_MV.csv'.format(cwd))
+#df.to_csv('{}\Multi_day_MV2.csv'.format(cwd))
 print(df)
 
 exit()

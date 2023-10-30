@@ -25,7 +25,7 @@ trade-off.
 
 import numpy as np
 
-n_features, n_samples = 40, 20
+n_features, n_samples = 20, 20
 np.random.seed(42)
 base_X_train = np.random.normal(size=(n_samples, n_features))
 base_X_test = np.random.normal(size=(n_samples, n_features))
@@ -34,6 +34,7 @@ base_X_test = np.random.normal(size=(n_samples, n_features))
 coloring_matrix = np.random.normal(size=(n_features, n_features))
 X_train = np.dot(base_X_train, coloring_matrix)
 X_test = np.dot(base_X_test, coloring_matrix)
+
 
 
 # Compute the likelihood on test data
@@ -54,6 +55,8 @@ negative_logliks = [
 real_cov = np.dot(coloring_matrix.T, coloring_matrix)
 emp_cov = empirical_covariance(X_train)
 loglik_real = -log_likelihood(emp_cov, linalg.inv(real_cov))
+
+
 
 # Compare different approaches to setting the regularization parameter
 # --------------------------------------------------------------------
@@ -85,6 +88,8 @@ cv.fit(X_train)
 # Ledoit-Wolf optimal shrinkage coefficient estimate
 lw = LedoitWolf()
 loglik_lw = lw.fit(X_train).score(X_test)
+
+
 
 # OAS coefficient estimate
 oa = OAS()
