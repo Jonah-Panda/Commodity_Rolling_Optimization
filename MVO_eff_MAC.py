@@ -6,7 +6,7 @@ from math import sqrt
 import datetime
 
 cwd = os.getcwd()
-# com_code = "SI"
+com_code = "SI"
 START_DATE = datetime.datetime(2013, 7, 1)
 END_DATE = datetime.datetime(2020, 9, 1)
 
@@ -24,6 +24,8 @@ def merge_futures_contracts(com_code):
     del datelist
 
     contract_list = os.listdir("{}/Data/{}".format(cwd, com_code))
+    contract_list = sorted(contract_list)
+    
     for file in contract_list:
         df_data = pd.read_csv("{}/Data/{}/{}".format(cwd, com_code, file), index_col=0)
         df_data['Date'] = pd.to_datetime(df_data['Date'])
@@ -47,6 +49,7 @@ def single_day_roll(dte_roll, df_com):
     df = pd.DataFrame(columns=['Date', 'Close'])
     df.loc[0, "Date"] = df_com['Date'][0]
     df.loc[0, "Close"] = df_com['{}'.format(col_names[0])][0]
+    # print(df_com)
 
     # dte_roll = 5
     old_contract_weight = 1
@@ -123,14 +126,12 @@ def get_commodity_codes_df():
     return df
 
 
-# df_com = merge_futures_contracts(com_code)
-# df = single_day_roll(5, df_com) 
-# print(df)
-# print(get_mean_variance(df))
-# df = multi_day_roll(4, 19, df_com)
-# print(df)
-# print(get_mean_variance(df))
+df_com = merge_futures_contracts(com_code)
 
+# df = multi_day_roll(4, 17, df_com)
+# print(df)
+# print(get_mean_variance(df))
+# exit()
 
 rows = []
 n_days = []
