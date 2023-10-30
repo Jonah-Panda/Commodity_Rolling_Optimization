@@ -128,9 +128,10 @@ df_com = merge_futures_contracts(com_code)
 # df = single_day_roll(5, df_com) 
 # print(df)
 # print(get_mean_variance(df))
-df = multi_day_roll(4, 19, df_com)
+df = multi_day_roll(4, 17, df_com)
 print(df)
 print(get_mean_variance(df))
+exit()
 
 
 rows = []
