@@ -144,9 +144,12 @@ for i in range(1, 25+1):
 
 Com_codes = get_commodity_codes_df()
 Com_codes = Com_codes['Code'].tolist()
-Com_codes = reversed(Com_codes)
 
 df = pd.DataFrame(columns=Com_codes, index=rows)
+
+Com_codes = Com_codes[::-1]
+print(Com_codes)
+exit()
 
 for code in Com_codes:
     print()
