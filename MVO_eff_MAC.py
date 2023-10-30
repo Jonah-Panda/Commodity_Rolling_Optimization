@@ -23,9 +23,9 @@ def merge_futures_contracts(com_code):
     df = pd.DataFrame(datelist, columns=['Date'])
     del datelist
 
-    contract_list = os.listdir("{}\Data\{}".format(cwd, com_code))
+    contract_list = os.listdir("{}/Data/{}".format(cwd, com_code))
     for file in contract_list:
-        df_data = pd.read_csv("{}\Data\{}\{}".format(cwd, com_code, file), index_col=0)
+        df_data = pd.read_csv("{}/Data/{}/{}".format(cwd, com_code, file), index_col=0)
         df_data['Date'] = pd.to_datetime(df_data['Date'])
         last_tradeable_day = df_data.loc[0, ['Date']][0]
         if last_tradeable_day > END_DATE:
@@ -108,7 +108,7 @@ def get_mean_variance(df):
     meanVariance = mean/(sqrt(252) * var)
     return meanVariance
 def get_commodity_codes_df():
-    file_name = "{}\FNCE 449 - Final Project.xlsx".format(cwd)
+    file_name = "{}/FNCE 449 - Final Project.xlsx".format(cwd)
     sheet_name = "Building Table"
     df = pd.read_excel(io=file_name, sheet_name=sheet_name, header=None, skiprows=27)
     df = df[[0, 1]]
@@ -157,7 +157,7 @@ for code in Com_codes:
         # print('{} - {}'.format(n_days[index], dte[index]))
 
         if index % 25 == 0:
-            df.to_csv('{}\Multi_day_MV2.csv'.format(cwd))
+            df.to_csv('{}/Multi_day_MV2.csv'.format(cwd))
             print(df)
 
         print('{} - {}%'.format(code, round(100*index/len(rows), 2)), end='\r')
@@ -167,4 +167,4 @@ for code in Com_codes:
         df.loc[id, "{}".format(code)] = meanVar
 
 
-df.to_csv('{}\Multi_day_MV2.csv'.format(cwd))
+df.to_csv('{}/Multi_day_MV2.csv'.format(cwd))
