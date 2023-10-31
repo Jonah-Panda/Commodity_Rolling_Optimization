@@ -1,3 +1,5 @@
+# https://www.econ.uzh.ch/en/people/faculty/wolf/publications.html
+
 import pandas as pd
 import datetime
 from dateutil.relativedelta import relativedelta
@@ -68,7 +70,7 @@ def multi_day_roll(n_days, last_dte_roll, com_code):
 
     return df
 
-datelist = pd.bdate_range(start=START_DATE - relativedelta(months=12), end=END_DATE)
+datelist = pd.bdate_range(start=START_DATE - relativedelta(months=24), end=END_DATE)
 df = pd.DataFrame(datelist, columns=['Date'])
 del datelist
 
@@ -94,7 +96,7 @@ for com in com_codes:
     df_com = multi_day_roll(int(n_days), int(last_dte), "{}".format(com))
     df_com['Date'] = pd.to_datetime(df_com['Date'])
     df_com.rename(columns={'Close':'{}'.format(com)}, inplace=True)
-    df_com = df_com.loc[df_com['Date'] > START_DATE - relativedelta(months=12)]
+    df_com = df_com.loc[df_com['Date'] > START_DATE - relativedelta(months=24)]
 
     
     df = df.merge(df_com, on='Date', how='left')
