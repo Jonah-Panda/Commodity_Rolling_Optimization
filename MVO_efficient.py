@@ -76,27 +76,28 @@ def single_day_roll(dte_roll, df_com):
         df = pd.concat([df, df2])
     df.dropna(inplace=True)
     return df
-def multi_day_roll(n_days, last_dte_roll, df_com):
-    df_multi = single_day_roll(last_dte_roll, df_com)
-    if type(df_multi) == int:
-        return 0
+# def multi_day_roll(n_days, last_dte_roll, df_com):
+#     df_multi = single_day_roll(last_dte_roll, df_com)
+#     if type(df_multi) == int:
+#         return 0
 
-    for i in range(last_dte_roll+1, last_dte_roll+n_days):
-        df2_multi = single_day_roll(i, df_com)
-        if type(df2_multi) == int:
-            return 0
+#     for i in range(last_dte_roll+1, last_dte_roll+n_days):
+#         df2_multi = single_day_roll(i, df_com)
+#         if type(df2_multi) == int:
+#             return 0
 
-        # Merging different individual day roll
-        df_multi = df_multi.merge(df2_multi, on='Date', how='left')
+#         # Merging different individual day roll
+#         df_multi = df_multi.merge(df2_multi, on='Date', how='left')
 
-        # Adding close to cumulative sum that will be divided after cumulative sum
-        df_multi['Close'] = df_multi['Close_x'] + df_multi['Close_y']
-        df_multi = df_multi[['Date', 'Close']]
+#         # Adding close to cumulative sum that will be divided after cumulative sum
+#         df_multi['Close'] = df_multi['Close_x'] + df_multi['Close_y']
+#         df_multi = df_multi[['Date', 'Close']]
 
-    # Dividing cumulaitve sum by number of days to roll over
-    df_multi['Close'] = df_multi['Close'] / n_days
+#     # Dividing cumulaitve sum by number of days to roll over
+#     df_multi['Close'] = df_multi['Close'] / n_days
 
-    return df_multi    
+#     return df_multi    
+
 def get_mean_variance(df):
     if type(df) == int:
         return 0
@@ -121,8 +122,54 @@ def get_commodity_codes_df():
     df.reset_index(inplace=True, drop=True)
 
     return df
+def single_day_builder(df_com):
+    df = single_day_roll(1, df_com)
+    df.rename(columns={'Close':'{}'.format(1)}, inplace=True)
+    df = df[["Date", '{}'.format(1)]]
 
+    for i in range(2, 25+25+1):
+        temp_df = single_day_roll(i, df_com)
+        if type(temp_df) == int:
+            df['{}'.format(i)] = 0
+        else:
+            temp_df.rename(columns={'Close':'{}'.format(i)}, inplace=True)
+            temp_df = temp_df[["Date", '{}'.format(i)]]
+            df = df.merge(temp_df, on='Date', how='left')
 
+    return df
+def multi_day_efficient(n_days, last_dte_roll, single_df):
+    df_multi = single_df[["Date", "{}".format(last_dte_roll)]]
+    if df_multi['{}'.format(last_dte_roll)].sum() == 0:
+        return 0
+    df_multi = df_multi.rename(columns={'{}'.format(last_dte_roll):'Close'})
+
+    for i in range(last_dte_roll+1, last_dte_roll+n_days):
+        df2_multi = single_df[["Date", "{}".format(i)]]
+        if df2_multi['{}'.format(i)].sum() == 0:
+            return 0
+
+        df2_multi = df2_multi.rename(columns={'{}'.format(i):'Close'})
+        # Merging different individual day roll
+        df_multi = df_multi.merge(df2_multi, on='Date', how='left')
+
+        # Adding close to cumulative sum that will be divided after cumulative sum
+        df_multi['Close'] = df_multi['Close_x'] + df_multi['Close_y']
+        df_multi = df_multi[['Date', 'Close']]
+
+    # Dividing cumulaitve sum by number of days to roll over
+    df_multi['Close'] = df_multi['Close'] / n_days
+
+    return df_multi
+
+# df_com = merge_futures_contracts("CL")
+# single_df = single_day_builder(df_com)
+# df2 = multi_day_efficient(4, 17, single_df)
+# print(df2)
+
+# df = multi_day_roll(4, 17, df_com)
+# print(df)
+
+# exit()
 # df_com = merge_futures_contracts(com_code)
 # df = multi_day_roll(4, 17, df_com)
 # print(df)
@@ -147,26 +194,27 @@ Com_codes = Com_codes['Code'].tolist()
 
 df = pd.DataFrame(columns=Com_codes, index=rows)
 
-Com_codes = Com_codes[::-1]
-print(Com_codes)
-exit()
+Com_codes = Com_codes[4:15:-1]
+
 
 for code in Com_codes:
     print()
     df_com = merge_futures_contracts(code)
+    single_df = single_day_builder(df_com)
     for id in rows:
         index = rows.index(id)
         # print('{} - {}'.format(n_days[index], dte[index]))
 
         if index % 25 == 0:
-            df.to_csv('{}\Multi_day_MV3.csv'.format(cwd))
+            df.to_csv('{}\Multi_day_MV4.csv'.format(cwd))
             print(df)
 
         print('{} - {}%'.format(code, round(100*index/len(rows), 2)), end='\r')
-        temp_df = multi_day_roll(n_days[index], dte[index], df_com)
+        # temp_df = multi_day_roll(n_days[index], dte[index], df_com)
+        temp_df = multi_day_efficient(n_days[index], dte[index], single_df)
         meanVar = get_mean_variance(temp_df)
 
         df.loc[id, "{}".format(code)] = meanVar
 
 
-df.to_csv('{}\Multi_day_MV3.csv'.format(cwd))
+df.to_csv('{}\Multi_day_MV4.csv'.format(cwd))

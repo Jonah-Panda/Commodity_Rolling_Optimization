@@ -2,11 +2,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
 import os
-from time import sleep
-# from matplotlib.pyplot import figure
-# plt.rc('axes', labelsize=5)
-# plt.rc('ytick', labelsize=5)
-# plt.rc('xtick', labelsize=5)
 
 cwd = os.getcwd()
 
@@ -52,7 +47,7 @@ def show_code_plot(code, df):
     return ax2
 
 
-multi_df = pd.read_csv('Multi_day_MV.csv', index_col=0)
+multi_df = pd.read_csv('Multi_day_MV3.csv', index_col=0)
 
 com_codes = multi_df.columns.tolist()
 for com in com_codes:
