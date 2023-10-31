@@ -42,7 +42,7 @@ def show_code_plot(code, df):
 
         rgb = rgbspectrum(row['{}'.format(code)], df_min, df_diff)
         
-        ax2 = add_rect(n_days, end, rgb, ax2)
+        ax2 = add_rect(n_days-1, end-1, rgb, ax2)
     
     return ax2
 
@@ -52,8 +52,8 @@ multi_df = pd.read_csv('Multi_day_MV5.csv', index_col=0)
 com_codes = multi_df.columns.tolist()
 for com in com_codes:
     ax2 = show_code_plot(com, multi_df)
-    ax2.set_xlim(1,35)
-    ax2.set_ylim(1,35)
+    ax2.set_xlim(0,25)
+    ax2.set_ylim(0,25)
     ax2.set_xlabel("Days Rolled", fontsize=10)
     ax2.set_ylabel("Last Day Rolled", fontsize=10)
     ax2.set_title("{}".format(com))
