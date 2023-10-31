@@ -5,8 +5,8 @@ from math import sqrt
 import datetime
 
 cwd = os.getcwd()
-START_DATE = datetime.datetime(2013, 7, 1)
-END_DATE = datetime.datetime(2020, 9, 1)
+START_DATE = datetime.datetime(2020, 9, 1)
+END_DATE = datetime.datetime(2023, 9, 1)
 
 def month_zero(x):
     str_month =  str(x.month)
@@ -160,7 +160,7 @@ for code in Com_codes:
         # print('{} - {}'.format(n_days[index], dte[index]))
 
         if index % 25 == 0:
-            df.to_csv('{}\Multi_day_MV5.csv'.format(cwd))
+            df.to_csv('{}\Multi_day_MV_testing.csv'.format(cwd))
             print(df)
 
         print('{} - {}%'.format(code, round(100*index/len(rows), 2)), end='\r')
@@ -170,4 +170,4 @@ for code in Com_codes:
 
         df.loc[id, "{}".format(code)] = meanVar
 
-df.to_csv('{}\Multi_day_MV5.csv'.format(cwd))
+df.to_csv('{}\Multi_day_MV_testing.csv'.format(cwd))
