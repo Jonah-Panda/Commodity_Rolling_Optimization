@@ -51,7 +51,7 @@ def show_code_plot(code, df):
     return ax2
 
 
-multi_df = pd.read_csv('Multi_day_MV_training.csv', index_col=0)
+multi_df = pd.read_csv('Multi_day_MV_testing.csv', index_col=0)
 
 com_codes = multi_df.columns.tolist()
 for com in com_codes:
@@ -62,7 +62,7 @@ for com in com_codes:
     ax2.set_ylabel("Last Day Rolled", fontsize=10)
     ax2.set_title("{}".format(com))
     plt.tight_layout()
-    plt.savefig('{}\{}'.format("Images_training", com))
+    plt.savefig('{}\{}'.format("Images_testing", com))
     plt.close()
 
 

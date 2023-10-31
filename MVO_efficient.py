@@ -3,6 +3,7 @@ import os
 import numpy as np
 from math import sqrt
 import datetime
+from dateutil.relativedelta import relativedelta
 
 cwd = os.getcwd()
 START_DATE = datetime.datetime(2020, 9, 1)
@@ -17,7 +18,7 @@ def day_zero(x):
 def dt_to_string(date):
     return "{}-{}-{}".format(date.year, month_zero(date), day_zero(date))
 def merge_futures_contracts(com_code):
-    datelist = pd.bdate_range(start=START_DATE, end=END_DATE)
+    datelist = pd.bdate_range(start=START_DATE - relativedelta(months=2), end=END_DATE)
     df = pd.DataFrame(datelist, columns=['Date'])
     del datelist
 
@@ -26,6 +27,8 @@ def merge_futures_contracts(com_code):
         df_data = pd.read_csv("{}\Data\{}\{}".format(cwd, com_code, file), index_col=0)
         df_data['Date'] = pd.to_datetime(df_data['Date'])
         last_tradeable_day = df_data.loc[0, ['Date']][0]
+        if last_tradeable_day < START_DATE:
+            continue
         if last_tradeable_day > END_DATE:
             continue
         else:
@@ -55,6 +58,8 @@ def single_day_roll(dte_roll, df_com):
         df2.interpolate(method='pad', limit=10, inplace=True) # Padding for days with no trading volume
 
         roll_index = len(df2) - dte_roll
+        if roll_index < 0:
+            return 0
         roll_date = df2.loc[roll_index, ["Date"]][0]
 
         # HEY, IF YOU HAVE TIME YOU SHOULD TOTALLY COME BACK AND ADD VOLUME TRIGGERS AND CASH TRIGGERS TO THE MATCHING ALGO SO IT IS ACTUALLY REPRESENTATIVE
@@ -137,6 +142,10 @@ def multi_day_efficient(n_days, last_dte_roll, single_df):
 
     return df_multi
 
+# df_com = merge_futures_contracts("SI")
+# single_df = single_day_builder(df_com)
+# print(single_df)
+# exit()
 rows = []
 n_days = []
 dte = []
