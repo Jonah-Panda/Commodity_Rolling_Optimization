@@ -94,7 +94,7 @@ for com in com_codes:
     df_com = multi_day_roll(int(n_days), int(last_dte), "{}".format(com))
     df_com['Date'] = pd.to_datetime(df_com['Date'])
     df_com.rename(columns={'Close':'{}'.format(com)}, inplace=True)
-    df_com = df_com.loc[df_com['Date'] > START_DATE - relativedelta(months=2)]
+    df_com = df_com.loc[df_com['Date'] > START_DATE - relativedelta(months=12)]
 
     
     df = df.merge(df_com, on='Date', how='left')
