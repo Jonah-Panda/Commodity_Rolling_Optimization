@@ -1,12 +1,10 @@
 import pandas as pd
 import os
 import numpy as np
-from numpy import where
 from math import sqrt
 import datetime
 
 cwd = os.getcwd()
-# com_code = "SI"
 START_DATE = datetime.datetime(2013, 7, 1)
 END_DATE = datetime.datetime(2020, 9, 1)
 
@@ -76,28 +74,6 @@ def single_day_roll(dte_roll, df_com):
         df = pd.concat([df, df2])
     df.dropna(inplace=True)
     return df
-# def multi_day_roll(n_days, last_dte_roll, df_com):
-#     df_multi = single_day_roll(last_dte_roll, df_com)
-#     if type(df_multi) == int:
-#         return 0
-
-#     for i in range(last_dte_roll+1, last_dte_roll+n_days):
-#         df2_multi = single_day_roll(i, df_com)
-#         if type(df2_multi) == int:
-#             return 0
-
-#         # Merging different individual day roll
-#         df_multi = df_multi.merge(df2_multi, on='Date', how='left')
-
-#         # Adding close to cumulative sum that will be divided after cumulative sum
-#         df_multi['Close'] = df_multi['Close_x'] + df_multi['Close_y']
-#         df_multi = df_multi[['Date', 'Close']]
-
-#     # Dividing cumulaitve sum by number of days to roll over
-#     df_multi['Close'] = df_multi['Close'] / n_days
-
-#     return df_multi    
-
 def get_mean_variance(df):
     if type(df) == int:
         return 0
@@ -161,22 +137,6 @@ def multi_day_efficient(n_days, last_dte_roll, single_df):
 
     return df_multi
 
-# df_com = merge_futures_contracts("CL")
-# single_df = single_day_builder(df_com)
-# df2 = multi_day_efficient(4, 17, single_df)
-# print(df2)
-
-# df = multi_day_roll(4, 17, df_com)
-# print(df)
-
-# exit()
-# df_com = merge_futures_contracts(com_code)
-# df = multi_day_roll(4, 17, df_com)
-# print(df)
-# print(get_mean_variance(df))
-# exit()
-
-
 rows = []
 n_days = []
 dte = []
@@ -186,16 +146,10 @@ for i in range(1, 25+1):
         n_days = n_days + [i]
         dte = dte + [j]
 
-# print(n_days)
-# print(dte)
-
 Com_codes = get_commodity_codes_df()
 Com_codes = Com_codes['Code'].tolist()
 
 df = pd.DataFrame(columns=Com_codes, index=rows)
-
-Com_codes = Com_codes[4:15:-1]
-
 
 for code in Com_codes:
     print()
@@ -206,7 +160,7 @@ for code in Com_codes:
         # print('{} - {}'.format(n_days[index], dte[index]))
 
         if index % 25 == 0:
-            df.to_csv('{}\Multi_day_MV4.csv'.format(cwd))
+            df.to_csv('{}\Multi_day_MV5.csv'.format(cwd))
             print(df)
 
         print('{} - {}%'.format(code, round(100*index/len(rows), 2)), end='\r')
@@ -216,5 +170,4 @@ for code in Com_codes:
 
         df.loc[id, "{}".format(code)] = meanVar
 
-
-df.to_csv('{}\Multi_day_MV4.csv'.format(cwd))
+df.to_csv('{}\Multi_day_MV5.csv'.format(cwd))
