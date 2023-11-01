@@ -218,7 +218,7 @@ def slice_df(df_in_timeframe, start_date):
 
     id = df_in_timeframe[df_in_timeframe['Date'] < start_date].index[-1]+1
     N_samples = int((len(df_in_timeframe.columns)-1) / concentration_ratio)
-    df_slice = df.loc[id-N_samples:id, df.columns != 'Date']
+    df_slice = df_in_timeframe.loc[id-N_samples:id, df_in_timeframe.columns != 'Date']
     return df_slice
 def get_weights_reg(df_slice):
     # Calculating the covariance matrix
@@ -263,24 +263,83 @@ def get_weights_honey(df_slice):
     honey_weight = np.diag(honey_inv.values) / sum(np.diag(honey_inv.values))
     return honey_weight
 
+# Getting price returns
+df_TW = pd.read_csv('Two_week_ret_test.csv', index_col=0)
+df_TW['Date'] = pd.to_datetime(df_TW['Date'])
+df_W = pd.read_csv('Weekly_ret_test.csv', index_col=0)
+df_W['Date'] = pd.to_datetime(df_W['Date'])
+df_D = pd.read_csv('Daily_ret_test.csv', index_col=0)
+df_D['Date'] = pd.to_datetime(df_D['Date'])
 
-df = pd.read_csv('Two_week_ret_test.csv', index_col=0)
-df_slice = slice_df(df, start_date=START_DATE)
-print(df_slice)
+# Building portfolio
+df = df_D.loc[:, ['Date']]
+df['Date'] = df[df['Date'] >= START_DATE]#.reset_index(drop=True)
+df.dropna(inplace=True)
+df = df.reindex(columns=['Date', 'TW_sam', 'TW_mkt', 'TW_lsc', 'TW_honey', 'W_sam', 'W_mkt', 'W_lsc', 'W_honey', 'D_sam', 'D_mkt', 'D_lsc', 'D_honey'])
+print(df)
 
-df_TWW = pd.DataFrame()
-df_TWW['Date'] = df['Date']
-df_TWW['Date'] = df_TWW[df_TWW['Date'] > START_DATE].reset_index(drop=True)
-df_TWW.dropna(inplace=True)
-df_TWW = df_TWW.reindex(columns=df.columns)
+weights = np.zeros(len(df_D.columns)-1)
+TW_sample_weights = weights
+TW_mkt_weights = weights
+TW_lsc_weights = weights
+TW_honey_weights = weights
+W_sample_weights = weights
+W_mkt_weights = weights
+W_lsc_weights = weights
+W_honey_weights = weights
+D_sample_weights = weights
+D_mkt_weights = weights
+D_lsc_weights = weights
+D_honey_weights = weights
 
-for index, row in df_TWW.iterrows():
+
+rebalance_dates = df_TW['Date'].to_list()
+i = 0
+for index, row in df.iterrows():
     date = row['Date']
-    df_slice = slice_df(df, date)
-    sample_weights = get_weights_reg(df_slice)
-    df_TWW.loc[index, df_TWW.columns != 'Date'] = sample_weights
 
-print(df_TWW)
+    com_ret = df_D.loc[index, df_D.columns != 'Date'].to_numpy()
+
+    TW_sam_ret = np.dot(1+com_ret, TW_sample_weights)
+    TW_mkt_ret = np.dot(1+com_ret, TW_mkt_weights)
+    TW_lsc_ret = np.dot(1+com_ret, TW_lsc_weights)
+    TW_honey_ret = np.dot(1+com_ret, TW_honey_weights)
+    W_sample_ret = np.dot(1+com_ret, W_sample_weights)
+    W_mkt_ret = np.dot(1+com_ret, W_mkt_weights)
+    W_lsc_ret = np.dot(1+com_ret, W_lsc_weights)
+    W_honey_ret = np.dot(1+com_ret, W_honey_weights)
+    D_sample_ret = np.dot(1+com_ret, D_sample_weights)
+    D_mkt_ret = np.dot(1+com_ret, D_mkt_weights)
+    D_lsc_ret = np.dot(1+com_ret, D_lsc_weights)
+    D_honey_ret = np.dot(1+com_ret, D_honey_weights)
+
+    if date in rebalance_dates:
+        df_TW_slice = slice_df(df_TW, date)
+        TW_sample_weights = get_weights_reg(df_TW_slice)
+        TW_mkt_weights = get_weights_mkt(df_TW_slice)
+        TW_lsc_weights = get_weights_lsc(df_TW_slice)
+        TW_honey_weights = get_weights_honey(df_TW_slice)
+
+        df_W_slice = slice_df(df_W, date)
+        W_sample_weights = get_weights_reg(df_W_slice)
+        W_mkt_weights = get_weights_mkt(df_W_slice)
+        W_lsc_weights = get_weights_lsc(df_W_slice)
+        W_honey_weights = get_weights_honey(df_W_slice)
+
+        df_D_slice = slice_df(df_D, date)
+        D_sample_weights = get_weights_reg(df_D_slice)
+        D_mkt_weights = get_weights_mkt(df_D_slice)
+        D_lsc_weights = get_weights_lsc(df_D_slice)
+        D_honey_weights = get_weights_honey(df_D_slice)
+
+        i += 1
+        if i >= 2:
+            print(TW_honey_weights)
+            print()
+            exit()
+    
+
+# print(df_TWW)
 exit()
 # df_cov = df_slice.cov()
 # lsc = cov1Para(df_slice)
