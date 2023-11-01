@@ -6,7 +6,9 @@ import datetime
 from numpy import linalg as LA
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
+cwd = os.getcwd()
 START_DATE = datetime.datetime(2020, 9, 1)
 concentration_ratio = 1/2
 
@@ -292,9 +294,8 @@ D_mkt_weights = weights
 D_lsc_weights = weights
 D_honey_weights = weights
 
-
 rebalance_dates = df_TW['Date'].to_list()
-i = 0
+
 for index, row in df.iterrows():
     date = row['Date']
 
@@ -312,6 +313,8 @@ for index, row in df.iterrows():
     D_mkt_ret = np.dot(1+com_ret, D_mkt_weights)
     D_lsc_ret = np.dot(1+com_ret, D_lsc_weights)
     D_honey_ret = np.dot(1+com_ret, D_honey_weights)
+
+    df.loc[index, df.columns != 'Date'] = [TW_sam_ret, TW_mkt_ret, TW_lsc_ret, TW_honey_ret, W_sample_ret, W_mkt_ret, W_lsc_ret, W_honey_ret, D_sample_ret, D_mkt_ret, D_lsc_ret, D_honey_ret]
 
     if date in rebalance_dates:
         df_TW_slice = slice_df(df_TW, date)
@@ -331,16 +334,23 @@ for index, row in df.iterrows():
         D_mkt_weights = get_weights_mkt(df_D_slice)
         D_lsc_weights = get_weights_lsc(df_D_slice)
         D_honey_weights = get_weights_honey(df_D_slice)
+    else:
+        continue
+    continue
 
-        i += 1
-        if i >= 2:
-            print(TW_honey_weights)
-            print()
-            exit()
-    
+print(df)
+df.to_csv('{}\Returns.csv'.format(cwd))
 
-# print(df_TWW)
-exit()
+
+
+
+
+
+
+
+
+########################################################
+
 # df_cov = df_slice.cov()
 # lsc = cov1Para(df_slice)
 # mkt = covMarket(df_slice)
