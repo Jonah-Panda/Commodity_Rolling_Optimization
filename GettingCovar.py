@@ -123,28 +123,25 @@ df_two_week = df_weekly[df_weekly.reset_index()['index'] % 2 == 0].reset_index(d
 
 for com in com_codes:
     # two weeks
-    df_pct = df_two_week['Date']
-    df_pct['Close'] = df_two_week['{}'.format(com)]
-    df_pct['Close_minus_1'] = df_pct['Close'].shift(-1)
+    df_pct = df_two_week.loc[:, ['Date', '{}'.format(com)]]
+    df_pct.rename(columns={'{}'.format(com):'Close'}, inplace=True)
+    df_pct['Close_minus_1'] = df_pct['Close'].shift(1)
     df_pct['Return'] = (df_pct['Close'] - df_pct['Close_minus_1']) / df_pct['Close_minus_1']
-    df_pct['Return'] = df_pct['Return'].shift(1)
-    df_two_week['{}'.format(com)] = df_pct['Return']
+    df_two_week.loc[:, '{}'.format(com)] = df_pct['Return']
 
     # weekly
-    df_pct = df_weekly['Date']
-    df_pct['Close'] = df_weekly['{}'.format(com)]
-    df_pct['Close_minus_1'] = df_pct['Close'].shift(-1)
+    df_pct = df_weekly.loc[:, ['Date', '{}'.format(com)]]
+    df_pct.rename(columns={'{}'.format(com):'Close'}, inplace=True)
+    df_pct['Close_minus_1'] = df_pct['Close'].shift(1)
     df_pct['Return'] = (df_pct['Close'] - df_pct['Close_minus_1']) / df_pct['Close_minus_1']
-    df_pct['Return'] = df_pct['Return'].shift(1)
-    df_weekly['{}'.format(com)] = df_pct['Return']
+    df_weekly.loc[:, '{}'.format(com)] = df_pct['Return']
 
     # Daily
-    df_pct = df_daily['Date']
-    df_pct['Close'] = df_daily['{}'.format(com)]
-    df_pct['Close_minus_1'] = df_pct['Close'].shift(-1)
+    df_pct = df_daily.loc[:, ['Date', '{}'.format(com)]]
+    df_pct.rename(columns={'{}'.format(com):'Close'}, inplace=True)
+    df_pct['Close_minus_1'] = df_pct['Close'].shift(1)
     df_pct['Return'] = (df_pct['Close'] - df_pct['Close_minus_1']) / df_pct['Close_minus_1']
-    df_pct['Return'] = df_pct['Return'].shift(1)
-    df_daily['{}'.format(com)] = df_pct['Return']
+    df_daily.loc[:, '{}'.format(com)] = df_pct['Return']
 
     # if com == "CL": ###########
     #     break #################
