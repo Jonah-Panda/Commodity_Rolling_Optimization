@@ -1,161 +1,329 @@
-# https://scikit-learn.org/stable/auto_examples/covariance/plot_covariance_estimation.html
-# https://scikit-learn.org/stable/modules/generated/sklearn.covariance.ledoit_wolf.html#sklearn.covariance.ledoit_wolf
-# https://scikit-learn.org/stable/modules/covariance.html#id3
-# https://covariance.viewpointexperience.ca/
-
-
-"""
-=======================================================================
-Shrinkage covariance estimation: LedoitWolf vs OAS and max-likelihood
-=======================================================================
-
-When working with covariance estimation, the usual approach is to use
-a maximum likelihood estimator, such as the
-:class:`~sklearn.covariance.EmpiricalCovariance`. It is unbiased, i.e. it
-converges to the true (population) covariance when given many
-observations. However, it can also be beneficial to regularize it, in
-order to reduce its variance; this, in turn, introduces some bias. This
-example illustrates the simple regularization used in
-:ref:`shrunk_covariance` estimators. In particular, it focuses on how to
-set the amount of regularization, i.e. how to choose the bias-variance
-trade-off.
-"""
-# Generate sample data
-# --------------------
-
+# https://github.com/pald22/covShrinkage
+# Patrick has made the three covariance shrinkage functions
+# Their github for the source of the functions is linked above
+import pandas as pd
+import datetime
+from numpy import linalg as LA
+import matplotlib.pyplot as plt
 import numpy as np
 
-n_features, n_samples = 20, 20
-np.random.seed(42)
-base_X_train = np.random.normal(size=(n_samples, n_features))
-base_X_test = np.random.normal(size=(n_samples, n_features))
+START_DATE = datetime.datetime(2020, 9, 1)
+concentration_ratio = 1/2
 
-# Color samples
-coloring_matrix = np.random.normal(size=(n_features, n_features))
-X_train = np.dot(base_X_train, coloring_matrix)
-X_test = np.dot(base_X_test, coloring_matrix)
+def cov1Para(Y,k = None):
+    # https://github.com/pald22/covShrinkage
+    # Patrick has made the three covariance shrinkage functions
+    # Their github for the source of the functions is linked above
+
+    #Pre-Conditions: Y is a valid pd.dataframe and optional arg- k which can be
+    #    None, np.nan or int
+    #Post-Condition: Sigmahat dataframe is returned
+    
+    import numpy as np
+    import pandas as pd
+    import math
+
+    # de-mean returns if required
+    N,p = Y.shape                      # sample size and matrix dimension
+   
+   
+    #default setting
+    if k is None or math.isnan(k):
+        
+        mean = Y.mean(axis=0)
+        Y = Y.sub(mean, axis=1)                               #demean
+        k = 1
+
+    #vars
+    n = N-k                                    # adjust effective sample size
+    
+    
+    #Cov df: sample covariance matrix
+    sample = pd.DataFrame(np.matmul(Y.T.to_numpy(),Y.to_numpy()))/n     
+    
+    
+    # compute shrinkage target
+    diag = np.diag(sample.to_numpy())
+    meanvar= sum(diag)/len(diag)
+    target=meanvar*np.eye(p)
+    
+    
+    
+    # estimate the parameter that we call pi in Ledoit and Wolf (2003, JEF)
+    Y2 = pd.DataFrame(np.multiply(Y.to_numpy(),Y.to_numpy()))
+    sample2= pd.DataFrame(np.matmul(Y2.T.to_numpy(),Y2.to_numpy()))/n     # sample covariance matrix of squared returns
+    piMat=pd.DataFrame(sample2.to_numpy()-np.multiply(sample.to_numpy(),sample.to_numpy()))
+    
+    
+    pihat = sum(piMat.sum())
+    
+
+    
+    # estimate the parameter that we call gamma in Ledoit and Wolf (2003, JEF)
+    gammahat = np.linalg.norm(sample.to_numpy()-target,ord = 'fro')**2
+    
+    
+    # diagonal part of the parameter that we call rho 
+    rho_diag=0;
+    
+    # off-diagonal part of the parameter that we call rho 
+    rho_off=0;
+    
+    # compute shrinkage intensity
+    rhohat=rho_diag+rho_off
+    kappahat=(pihat-rhohat)/gammahat
+    shrinkage=max(0,min(1,kappahat/n))
+    
+    # compute shrinkage estimator
+    sigmahat=shrinkage*target+(1-shrinkage)*sample
+    
+    
+    return sigmahat
+def covMarket(Y,k = None):
+    # https://github.com/pald22/covShrinkage
+    # Patrick has made the three covariance shrinkage functions
+    # Their github for the source of the functions is linked above
+
+    #Pre-Conditions: Y is a valid pd.dataframe and optional arg- k which can be
+    #    None, np.nan or int
+    #Post-Condition: Sigmahat dataframe is returned
+    
+    import numpy as np
+    import numpy.matlib as mt
+    import pandas as pd
+    import math
+
+    # de-mean returns if required
+    N,p = Y.shape                      # sample size and matrix dimension
+
+    #default setting
+    if k is None or math.isnan(k):
+        
+        mean = Y.mean(axis=0)
+        Y = Y.sub(mean, axis=1)                               #demean
+        k = 1
+
+    #vars
+    n = N-k                                    # adjust effective sample size
+    
+    #Cov df: sample covariance matrix
+    sample = pd.DataFrame(np.matmul(Y.T.to_numpy(),Y.to_numpy()))/n
+
+    #compute shrinkage target
+    Ymkt = Y.mean(axis = 1) #equal-weighted market factor
+    covmkt = pd.DataFrame(np.matmul(Y.T.to_numpy(),Ymkt.to_numpy()))/n #covariance of original variables with common factor
+    varmkt = np.matmul(Ymkt.T.to_numpy(),Ymkt.to_numpy())/n #variance of common factor
+    target = pd.DataFrame(np.matmul(covmkt.to_numpy(),covmkt.T.to_numpy()))/varmkt
+    target[np.logical_and(np.eye(p),np.eye(p))] = sample[np.logical_and(np.eye(p),np.eye(p))]
+    
+    # estimate the parameter that we call pi in Ledoit and Wolf (2003, JEF)
+    Y2 = pd.DataFrame(np.multiply(Y.to_numpy(),Y.to_numpy()))
+    sample2= pd.DataFrame(np.matmul(Y2.T.to_numpy(),Y2.to_numpy()))/n     # sample covariance matrix of squared returns
+    piMat=pd.DataFrame(sample2.to_numpy()-np.multiply(sample.to_numpy(),sample.to_numpy()))
+    pihat = sum(piMat.sum())
+    
+    # estimate the parameter that we call gamma in Ledoit and Wolf (2003, JEF)
+    gammahat = np.linalg.norm(sample.to_numpy()-target,ord = 'fro')**2
+    
+    # diagonal part of the parameter that we call rho 
+    rho_diag =  np.sum(np.diag(piMat))
+    
+    # off-diagonal part of the parameter that we call rho 
+    temp = pd.DataFrame([Ymkt for i in range(p)]).T ############ Deleted Y* at the start of this before pd.DataFrame()
+    covmktSQ = pd.DataFrame([covmkt[0] for i in range(p)])
+
+    v1 = pd.DataFrame((1/n) * np.matmul(Y2.T.to_numpy(),temp.to_numpy())-np.multiply(covmktSQ.T.to_numpy(),sample.to_numpy()))
+    roff1 = (np.sum(np.sum(np.multiply(v1.to_numpy(),covmktSQ.to_numpy())))-np.sum(np.diag(np.multiply(v1.to_numpy(),covmkt.to_numpy()))))/varmkt
+    v3 = pd.DataFrame((1/n) * np.matmul(temp.T.to_numpy(),temp.to_numpy()) - varmkt * sample)
+    roff3 = (np.sum(np.sum(np.multiply(v3.to_numpy(),np.matmul(covmkt.to_numpy(),covmkt.T.to_numpy())))) - np.sum(np.multiply(np.diag(v3.to_numpy()),(covmkt[0]**2).to_numpy()))) /varmkt**2
+    rho_off=2*roff1-roff3
+    
+    # compute shrinkage intensity
+    rhohat = rho_diag + rho_off
+    kappahat = (pihat - rhohat) / gammahat
+    shrinkage = max(0 , min(1 , kappahat/n))
+    
+    # compute shrinkage estimator
+    sigmahat = shrinkage*target + (1-shrinkage) * sample;
+    
+    return sigmahat
+def covCor(Y,k = None):
+    # https://github.com/pald22/covShrinkage
+    # Patrick has made the three covariance shrinkage functions
+    # Their github for the source of the functions is linked above
+    
+    #Pre-Conditions: Y is a valid pd.dataframe and optional arg- k which can be
+    #    None, np.nan or int
+    #Post-Condition: Sigmahat dataframe is returned
+    
+    import numpy as np
+    import numpy.matlib as mt
+    import pandas as pd
+    import math
+
+    # de-mean returns if required
+    N,p = Y.shape                      # sample size and matrix dimension
+   
+   
+    #default setting
+    if k is None or math.isnan(k):
+        
+        mean = Y.mean(axis=0)
+        Y = Y.sub(mean, axis=1)                               #demean
+        k = 1
+
+    #vars
+    n = N-k                                    # adjust effective sample size
+
+    #Cov df: sample covariance matrix
+    sample = pd.DataFrame(np.matmul(Y.T.to_numpy(),Y.to_numpy()))/n     
+        
+    # compute shrinkage target
+    samplevar = np.diag(sample.to_numpy())
+    sqrtvar = pd.DataFrame(np.sqrt(samplevar))
+    rBar = (np.sum(np.sum(sample.to_numpy()/np.matmul(sqrtvar.to_numpy(),sqrtvar.T.to_numpy())))-p)/(p*(p-1)) # mean correlation
+    target = pd.DataFrame(rBar*np.matmul(sqrtvar.to_numpy(),sqrtvar.T.to_numpy()))
+    target[np.logical_and(np.eye(p),np.eye(p))] = sample[np.logical_and(np.eye(p),np.eye(p))];
+    
+    # estimate the parameter that we call pi in Ledoit and Wolf (2003, JEF)
+    Y2 = pd.DataFrame(np.multiply(Y.to_numpy(),Y.to_numpy()))
+    sample2= pd.DataFrame(np.matmul(Y2.T.to_numpy(),Y2.to_numpy()))/n     # sample covariance matrix of squared returns
+    piMat=pd.DataFrame(sample2.to_numpy()-np.multiply(sample.to_numpy(),sample.to_numpy()))
+    pihat = sum(piMat.sum())
+    
+    # estimate the parameter that we call gamma in Ledoit and Wolf (2003, JEF)
+    gammahat = np.linalg.norm(sample.to_numpy()-target,ord = 'fro')**2
+    
+    # diagonal part of the parameter that we call rho 
+    rho_diag =  np.sum(np.diag(piMat))
+    
+    # off-diagonal part of the parameter that we call rho 
+    term1 = pd.DataFrame(np.matmul((Y**3).T.to_numpy(),Y.to_numpy())/n)
+    term2 = pd.DataFrame(np.transpose(mt.repmat(samplevar,p,1))*sample)
+    thetaMat = term1-term2
+    thetaMat[np.logical_and(np.eye(p),np.eye(p))] = pd.DataFrame(np.zeros((p,p)))[np.logical_and(np.eye(p),np.eye(p))]
+    rho_off = rBar*(np.matmul((1/sqrtvar).to_numpy(),sqrtvar.T.to_numpy())*thetaMat).sum().sum()
+    
+    # compute shrinkage intensity
+    rhohat = rho_diag + rho_off
+    kappahat = (pihat - rhohat) / gammahat
+    shrinkage = max(0 , min(1 , kappahat/n))
+    
+    # compute shrinkage estimator
+    sigmahat = shrinkage*target + (1-shrinkage) * sample;
+    
+    return sigmahat
+def slice_df(df_in_timeframe, start_date):
+    df_in_timeframe['Date'] = pd.to_datetime(df_in_timeframe['Date'])
+
+    id = df_in_timeframe[df_in_timeframe['Date'] < start_date].index[-1]+1
+    N_samples = int((len(df_in_timeframe.columns)-1) / concentration_ratio)
+    df_slice = df.loc[id-N_samples:id, df.columns != 'Date']
+    return df_slice
+def get_weights_reg(df_slice):
+    # Calculating the covariance matrix
+    df_cov = df_slice.cov()
+
+    # Calculating the inverse covariance matrix
+    df_cov_inv = pd.DataFrame(np.linalg.pinv(df_cov.values), df_cov.columns, df_cov.index)
+    
+    # Calculating the weight of each asset based on the diagonal of the inverse covariance matrix
+    df_cov_weight = np.diag(df_cov_inv.values) / sum(np.diag(df_cov_inv.values))
+
+    return df_cov_weight
+def get_weights_lsc(df_slice):
+    # Calculating the covariance matrix
+    lsc = cov1Para(df_slice)
+
+    # Calculating the inverse covariance matrix
+    lsc_inv = pd.DataFrame(np.linalg.pinv(lsc.values), lsc.columns, lsc.index)
+
+    # Calculating the weight of each asset based on the diagonal of the inverse covariance matrix
+    lsc_weight = np.diag(lsc_inv.values) / sum(np.diag(lsc_inv.values))
+
+    return lsc_weight
+def get_weights_mkt(df_slice):
+    # Calculating the covariance matrix
+    mkt = covMarket(df_slice)
+
+    # Calculating the inverse covariance matrix
+    mkt_inv = pd.DataFrame(np.linalg.pinv(mkt.values), mkt.columns, mkt.index)
+
+    # Calculating the weight of each asset based on the diagonal of the inverse covariance matrix
+    mkt_weight = np.diag(mkt_inv.values) / sum(np.diag(mkt_inv.values))
+    return mkt_weight
+def get_weights_honey(df_slice):
+    # Calculating the covariance matrix
+    honey = covCor(df_slice)
+
+    # Calculating the inverse covariance matrix
+    honey_inv = pd.DataFrame(np.linalg.pinv(honey.values), honey.columns, honey.index)
+
+    # Calculating the weight of each asset based on the diagonal of the inverse covariance matrix
+    honey_weight = np.diag(honey_inv.values) / sum(np.diag(honey_inv.values))
+    return honey_weight
 
 
+df = pd.read_csv('Two_week_ret_test.csv', index_col=0)
+df_slice = slice_df(df, start_date=START_DATE)
+print(df_slice)
 
-# Compute the likelihood on test data
-# -----------------------------------
+df_TWW = pd.DataFrame()
+df_TWW['Date'] = df['Date']
+df_TWW['Date'] = df_TWW[df_TWW['Date'] > START_DATE].reset_index(drop=True)
+df_TWW.dropna(inplace=True)
+df_TWW = df_TWW.reindex(columns=df.columns)
 
-from scipy import linalg
+for index, row in df_TWW.iterrows():
+    date = row['Date']
+    df_slice = slice_df(df, date)
+    sample_weights = get_weights_reg(df_slice)
+    df_TWW.loc[index, df_TWW.columns != 'Date'] = sample_weights
 
-from sklearn.covariance import ShrunkCovariance, empirical_covariance, log_likelihood
+print(df_TWW)
+exit()
+# df_cov = df_slice.cov()
+# lsc = cov1Para(df_slice)
+# mkt = covMarket(df_slice)
+# honey = covCor(df_slice)
 
-# spanning a range of possible shrinkage coefficient values
-shrinkages = np.logspace(-2, 0, 30)
-negative_logliks = [
-    -ShrunkCovariance(shrinkage=s).fit(X_train).score(X_test) for s in shrinkages
-]
-
-# under the ground-truth model, which we would not have access to in real
-# settings
-real_cov = np.dot(coloring_matrix.T, coloring_matrix)
-emp_cov = empirical_covariance(X_train)
-loglik_real = -log_likelihood(emp_cov, linalg.inv(real_cov))
-
-
-
-# Compare different approaches to setting the regularization parameter
-# --------------------------------------------------------------------
-#
-# Here we compare 3 approaches:
-#
-# * Setting the parameter by cross-validating the likelihood on three folds
-#   according to a grid of potential shrinkage parameters.
-#
-# * A close formula proposed by Ledoit and Wolf to compute
-#   the asymptotically optimal regularization parameter (minimizing a MSE
-#   criterion), yielding the :class:`~sklearn.covariance.LedoitWolf`
-#   covariance estimate.
-#
-# * An improvement of the Ledoit-Wolf shrinkage, the
-#   :class:`~sklearn.covariance.OAS`, proposed by Chen et al. Its
-#   convergence is significantly better under the assumption that the data
-#   are Gaussian, in particular for small samples.
+# print("Covariance Matricies")
+# # print(df_cov)
+# # print(lsc)
+# # print(mkt)
+# # print(honey)
 
 
-from sklearn.covariance import OAS, LedoitWolf
-from sklearn.model_selection import GridSearchCV
+# eig = LA.eigvals(df_cov)
+# eig2 = LA.eigvals(lsc)
+# eig3 = LA.eigvals(mkt)
+# eig4 = LA.eigvals(honey)
+# print("EigenValues")
+# # print(eig)
+# # print(eig2)
+# # print(eig3)
+# # print(eig4)
 
-# GridSearch for an optimal shrinkage coefficient
-tuned_parameters = [{"shrinkage": shrinkages}]
-cv = GridSearchCV(ShrunkCovariance(), tuned_parameters)
-cv.fit(X_train)
+# df_cov_inv = pd.DataFrame(np.linalg.pinv(df_cov.values), df_cov.columns, df_cov.index)
+# lsc_inv = pd.DataFrame(np.linalg.pinv(lsc.values), lsc.columns, lsc.index)
+# mkt_inv = pd.DataFrame(np.linalg.pinv(mkt.values), mkt.columns, mkt.index)
+# honey_inv = pd.DataFrame(np.linalg.pinv(honey.values), honey.columns, honey.index)
 
-# Ledoit-Wolf optimal shrinkage coefficient estimate
-lw = LedoitWolf()
-loglik_lw = lw.fit(X_train).score(X_test)
+# df_cov_weight = np.diag(df_cov_inv.values) / sum(np.diag(df_cov_inv.values))
+# lsc_weight = np.diag(lsc_inv.values) / sum(np.diag(lsc_inv.values))
+# mkt_weight = np.diag(mkt_inv.values) / sum(np.diag(mkt_inv.values))
+# honey_weight = np.diag(honey_inv.values) / sum(np.diag(honey_inv.values))
 
+# print("Weights")
+# # print(df_cov_weight)
+# # print(lsc_weight)
+# # print(mkt_weight)
+# # print(honey_weight)
 
-
-# OAS coefficient estimate
-oa = OAS()
-loglik_oa = oa.fit(X_train).score(X_test)
-
-# Plot results
-# ------------
-#
-#
-# To quantify estimation error, we plot the likelihood of unseen data for
-# different values of the shrinkage parameter. We also show the choices by
-# cross-validation, or with the LedoitWolf and OAS estimates.
-
-import matplotlib.pyplot as plt
-
-fig = plt.figure()
-plt.title("Regularized covariance: likelihood and shrinkage coefficient")
-plt.xlabel("Regularization parameter: shrinkage coefficient")
-plt.ylabel("Error: negative log-likelihood on test data")
-# range shrinkage curve
-plt.loglog(shrinkages, negative_logliks, label="Negative log-likelihood")
-
-plt.plot(plt.xlim(), 2 * [loglik_real], "--r", label="Real covariance likelihood")
-
-# adjust view
-lik_max = np.amax(negative_logliks)
-lik_min = np.amin(negative_logliks)
-ymin = lik_min - 6.0 * np.log((plt.ylim()[1] - plt.ylim()[0]))
-ymax = lik_max + 10.0 * np.log(lik_max - lik_min)
-xmin = shrinkages[0]
-xmax = shrinkages[-1]
-# LW likelihood
-plt.vlines(
-    lw.shrinkage_,
-    ymin,
-    -loglik_lw,
-    color="magenta",
-    linewidth=3,
-    label="Ledoit-Wolf estimate",
-)
-# OAS likelihood
-plt.vlines(
-    oa.shrinkage_, ymin, -loglik_oa, color="purple", linewidth=3, label="OAS estimate"
-)
-# best CV estimator likelihood
-plt.vlines(
-    cv.best_estimator_.shrinkage,
-    ymin,
-    -cv.best_estimator_.score(X_test),
-    color="cyan",
-    linewidth=3,
-    label="Cross-validation best estimate",
-)
-
-plt.ylim(ymin, ymax)
-plt.xlim(xmin, xmax)
-plt.legend()
-
-plt.show()
-
-# .. note::
-#
-#    The maximum likelihood estimate corresponds to no shrinkage,
-#    and thus performs poorly. The Ledoit-Wolf estimate performs really well,
-#    as it is close to the optimal and is not computationally costly. In this
-#    example, the OAS estimate is a bit further away. Interestingly, both
-#    approaches outperform cross-validation, which is significantly most
-#    computationally costly.
-
+# # Plotting Shrunken Eigenvalues
+# plt.scatter(range(0, 21), eig, label='Raw')
+# plt.scatter(range(0, 21), eig2, label='lsc')
+# plt.scatter(range(0, 21), eig3, label='mkt')
+# plt.scatter(range(0, 21), eig4, label='honey')
+# plt.legend(loc='upper right')
+# plt.show()
