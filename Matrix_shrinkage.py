@@ -230,7 +230,8 @@ def get_weights_reg(df_slice):
     df_cov_inv = pd.DataFrame(np.linalg.pinv(df_cov.values), df_cov.columns, df_cov.index)
     
     # Calculating the weight of each asset based on the diagonal of the inverse covariance matrix
-    df_cov_weight = np.diag(df_cov_inv.values) / sum(np.diag(df_cov_inv.values))
+    # df_cov_weight = np.diag(df_cov_inv.values) / sum(np.diag(df_cov_inv.values))
+    df_cov_weight = np.sum(df_cov_inv.values,axis=0) / np.sum(df_cov_inv.values)
 
     return df_cov_weight
 def get_weights_lsc(df_slice):
@@ -241,7 +242,8 @@ def get_weights_lsc(df_slice):
     lsc_inv = pd.DataFrame(np.linalg.pinv(lsc.values), lsc.columns, lsc.index)
 
     # Calculating the weight of each asset based on the diagonal of the inverse covariance matrix
-    lsc_weight = np.diag(lsc_inv.values) / sum(np.diag(lsc_inv.values))
+    # lsc_weight = np.diag(lsc_inv.values) / sum(np.diag(lsc_inv.values))
+    lsc_weight = np.sum(lsc_inv.values,axis=0) / np.sum(lsc_inv.values)
 
     return lsc_weight
 def get_weights_mkt(df_slice):
@@ -252,7 +254,8 @@ def get_weights_mkt(df_slice):
     mkt_inv = pd.DataFrame(np.linalg.pinv(mkt.values), mkt.columns, mkt.index)
 
     # Calculating the weight of each asset based on the diagonal of the inverse covariance matrix
-    mkt_weight = np.diag(mkt_inv.values) / sum(np.diag(mkt_inv.values))
+    # mkt_weight = np.diag(mkt_inv.values) / sum(np.diag(mkt_inv.values))
+    mkt_weight = np.sum(mkt_inv.values,axis=0) / np.sum(mkt_inv.values)
     return mkt_weight
 def get_weights_honey(df_slice):
     # Calculating the covariance matrix
@@ -262,7 +265,8 @@ def get_weights_honey(df_slice):
     honey_inv = pd.DataFrame(np.linalg.pinv(honey.values), honey.columns, honey.index)
 
     # Calculating the weight of each asset based on the diagonal of the inverse covariance matrix
-    honey_weight = np.diag(honey_inv.values) / sum(np.diag(honey_inv.values))
+    # honey_weight = np.diag(honey_inv.values) / sum(np.diag(honey_inv.values))
+    honey_weight = np.sum(honey_inv.values,axis=0) / np.sum(honey_inv.values)
     return honey_weight
 
 # Getting price returns
@@ -277,7 +281,7 @@ df_D['Date'] = pd.to_datetime(df_D['Date'])
 df = df_D.loc[:, ['Date']]
 df['Date'] = df[df['Date'] >= START_DATE]#.reset_index(drop=True)
 df.dropna(inplace=True)
-df = df.reindex(columns=['Date', 'TW_sam', 'TW_mkt', 'TW_lsc', 'TW_honey', 'W_sam', 'W_mkt', 'W_lsc', 'W_honey', 'D_sam', 'D_mkt', 'D_lsc', 'D_honey', 'Comb_sam', 'Comb_mkt', 'Comb_lsc', 'Comb_honey'])
+df = df.reindex(columns=['Date', 'TW_sam', 'TW_mkt', 'TW_lsc', 'TW_honey', 'W_sam', 'W_mkt', 'W_lsc', 'W_honey', 'D_sam', 'D_mkt', 'D_lsc', 'D_honey', 'Comb_sam', 'Comb_mkt', 'Comb_lsc', 'Comb_honey', 'delta_honey'])
 print(df)
 
 df_trading_days_between = pd.DataFrame(df_D.loc[:, 'Date'])
@@ -311,6 +315,7 @@ Comb_sample_weights = weights
 Comb_mkt_weights = weights
 Comb_lsc_weights = weights
 Comb_honey_weights = weights
+delta_honey = 0
 
 for index, row in df.iterrows():
     date = row['Date']
@@ -334,7 +339,8 @@ for index, row in df.iterrows():
     Comb_lsc_ret = np.dot(1+com_ret, Comb_lsc_weights)
     Comb_honey_ret = np.dot(1+com_ret, Comb_honey_weights)
 
-    df.loc[index, df.columns != 'Date'] = [TW_sam_ret, TW_mkt_ret, TW_lsc_ret, TW_honey_ret, W_sample_ret, W_mkt_ret, W_lsc_ret, W_honey_ret, D_sample_ret, D_mkt_ret, D_lsc_ret, D_honey_ret, Comb_sample_ret, Comb_mkt_ret, Comb_lsc_ret, Comb_honey_ret]
+
+    df.loc[index, df.columns != 'Date'] = [TW_sam_ret, TW_mkt_ret, TW_lsc_ret, TW_honey_ret, W_sample_ret, W_mkt_ret, W_lsc_ret, W_honey_ret, D_sample_ret, D_mkt_ret, D_lsc_ret, D_honey_ret, Comb_sample_ret, Comb_mkt_ret, Comb_lsc_ret, Comb_honey_ret, delta_honey]
 
     if date in rebalance_dates:
         df_TW_slice = slice_df(df_TW, date)
@@ -375,6 +381,7 @@ for index, row in df.iterrows():
         dVol = np.sqrt(np.matmul(np.matmul(D_honey_weights, covCor(df_D_slice)), np.transpose(D_honey_weights))) * np.sqrt(days_to_scale)
         delta = dVol / (twVol + dVol)
         Comb_honey_weights = D_honey_weights * (1 - delta) + TW_honey_weights * (delta)
+        delta_honey = delta
 
     else:
         continue
