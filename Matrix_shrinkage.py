@@ -277,8 +277,22 @@ df_D['Date'] = pd.to_datetime(df_D['Date'])
 df = df_D.loc[:, ['Date']]
 df['Date'] = df[df['Date'] >= START_DATE]#.reset_index(drop=True)
 df.dropna(inplace=True)
-df = df.reindex(columns=['Date', 'TW_sam', 'TW_mkt', 'TW_lsc', 'TW_honey', 'W_sam', 'W_mkt', 'W_lsc', 'W_honey', 'D_sam', 'D_mkt', 'D_lsc', 'D_honey'])
+df = df.reindex(columns=['Date', 'TW_sam', 'TW_mkt', 'TW_lsc', 'TW_honey', 'W_sam', 'W_mkt', 'W_lsc', 'W_honey', 'D_sam', 'D_mkt', 'D_lsc', 'D_honey', 'Comb_sam', 'Comb_mkt', 'Comb_lsc', 'Comb_honey'])
 print(df)
+
+df_trading_days_between = pd.DataFrame(df_D.loc[:, 'Date'])
+df_TW['Day_count'] = np.ones(len(df_TW))
+df_trading_days_between = df_trading_days_between.merge(df_TW.loc[:, ['Date', 'Day_count']], on='Date', how='left')
+df_TW.drop(columns=['Day_count'], inplace=True)
+df_trading_days_between = df_trading_days_between[df_trading_days_between['Date'] >= min(df_TW['Date'])].reset_index(drop=True)
+df_trading_days_between = df_trading_days_between[df_trading_days_between['Day_count'] == 1].reset_index()
+df_trading_days_between['index_t_minus_1'] = df_trading_days_between['index'].shift(-1)
+df_trading_days_between['Days'] = df_trading_days_between['index_t_minus_1'] - df_trading_days_between['index']
+df_trading_days_between.loc[len(df_trading_days_between)-1, 'Days'] = 10
+
+rebalance_dates = df_TW['Date'].to_list()
+trading_days_to_next_rebal = df_trading_days_between['Days'].tolist()
+del df_trading_days_between
 
 weights = np.zeros(len(df_D.columns)-1)
 TW_sample_weights = weights
@@ -293,8 +307,10 @@ D_sample_weights = weights
 D_mkt_weights = weights
 D_lsc_weights = weights
 D_honey_weights = weights
-
-rebalance_dates = df_TW['Date'].to_list()
+Comb_sample_weights = weights
+Comb_mkt_weights = weights
+Comb_lsc_weights = weights
+Comb_honey_weights = weights
 
 for index, row in df.iterrows():
     date = row['Date']
@@ -313,8 +329,12 @@ for index, row in df.iterrows():
     D_mkt_ret = np.dot(1+com_ret, D_mkt_weights)
     D_lsc_ret = np.dot(1+com_ret, D_lsc_weights)
     D_honey_ret = np.dot(1+com_ret, D_honey_weights)
+    Comb_sample_ret = np.dot(1+com_ret, Comb_sample_weights)
+    Comb_mkt_ret = np.dot(1+com_ret, Comb_mkt_weights)
+    Comb_lsc_ret = np.dot(1+com_ret, Comb_lsc_weights)
+    Comb_honey_ret = np.dot(1+com_ret, Comb_honey_weights)
 
-    df.loc[index, df.columns != 'Date'] = [TW_sam_ret, TW_mkt_ret, TW_lsc_ret, TW_honey_ret, W_sample_ret, W_mkt_ret, W_lsc_ret, W_honey_ret, D_sample_ret, D_mkt_ret, D_lsc_ret, D_honey_ret]
+    df.loc[index, df.columns != 'Date'] = [TW_sam_ret, TW_mkt_ret, TW_lsc_ret, TW_honey_ret, W_sample_ret, W_mkt_ret, W_lsc_ret, W_honey_ret, D_sample_ret, D_mkt_ret, D_lsc_ret, D_honey_ret, Comb_sample_ret, Comb_mkt_ret, Comb_lsc_ret, Comb_honey_ret]
 
     if date in rebalance_dates:
         df_TW_slice = slice_df(df_TW, date)
@@ -334,6 +354,28 @@ for index, row in df.iterrows():
         D_mkt_weights = get_weights_mkt(df_D_slice)
         D_lsc_weights = get_weights_lsc(df_D_slice)
         D_honey_weights = get_weights_honey(df_D_slice)
+
+        days_to_scale = trading_days_to_next_rebal[rebalance_dates.index(date)]
+        twVol = np.sqrt(np.matmul(np.matmul(TW_sample_weights, df_TW_slice.cov()), np.transpose(TW_sample_weights)))
+        dVol = np.sqrt(np.matmul(np.matmul(D_sample_weights, df_D_slice.cov()), np.transpose(D_sample_weights))) * np.sqrt(days_to_scale)
+        delta = dVol / (twVol + dVol)
+        Comb_sample_weights = D_sample_weights * (1 - delta) + TW_sample_weights * (delta)
+        
+        twVol = np.sqrt(np.matmul(np.matmul(TW_lsc_weights, cov1Para(df_TW_slice)), np.transpose(TW_lsc_weights)))
+        dVol = np.sqrt(np.matmul(np.matmul(D_lsc_weights, cov1Para(df_D_slice)), np.transpose(D_lsc_weights))) * np.sqrt(days_to_scale)
+        delta = dVol / (twVol + dVol)
+        Comb_lsc_weights = D_lsc_weights * (1 - delta) + TW_lsc_weights * (delta)
+
+        twVol = np.sqrt(np.matmul(np.matmul(TW_mkt_weights, covMarket(df_TW_slice)), np.transpose(TW_mkt_weights)))
+        dVol = np.sqrt(np.matmul(np.matmul(D_mkt_weights, covMarket(df_D_slice)), np.transpose(D_mkt_weights))) * np.sqrt(days_to_scale)
+        delta = dVol / (twVol + dVol)
+        Comb_mkt_weights = D_mkt_weights * (1 - delta) + TW_mkt_weights * (delta)
+
+        twVol = np.sqrt(np.matmul(np.matmul(TW_honey_weights, covCor(df_TW_slice)), np.transpose(TW_honey_weights)))
+        dVol = np.sqrt(np.matmul(np.matmul(D_honey_weights, covCor(df_D_slice)), np.transpose(D_honey_weights))) * np.sqrt(days_to_scale)
+        delta = dVol / (twVol + dVol)
+        Comb_honey_weights = D_honey_weights * (1 - delta) + TW_honey_weights * (delta)
+
     else:
         continue
     continue
@@ -350,7 +392,9 @@ df.to_csv('{}\Returns.csv'.format(cwd))
 
 
 ########################################################
-
+# # print(rebalance_dates)
+# date = datetime.datetime(2022, 3, 18)
+# df_slice = slice_df(df_TW, date)
 # df_cov = df_slice.cov()
 # lsc = cov1Para(df_slice)
 # mkt = covMarket(df_slice)
@@ -389,10 +433,16 @@ df.to_csv('{}\Returns.csv'.format(cwd))
 # # print(mkt_weight)
 # # print(honey_weight)
 
-# # Plotting Shrunken Eigenvalues
-# plt.scatter(range(0, 21), eig, label='Raw')
-# plt.scatter(range(0, 21), eig2, label='lsc')
-# plt.scatter(range(0, 21), eig3, label='mkt')
-# plt.scatter(range(0, 21), eig4, label='honey')
+# Plotting Shrunken Eigenvalues
+# plt.rcParams["figure.figsize"] = (4, 5)
+# # plt.tight_layout()
+# plt.scatter(range(0, 21), eig, label='Sample')
+# plt.scatter(range(0, 21), eig2, label='LSC')
+# # plt.scatter(range(0, 21), eig3, label='Mkt')
+# # plt.scatter(range(0, 21), eig4, label='Honey')
 # plt.legend(loc='upper right')
+# plt.title('Eigenvalue Shrinkage (Sample vs LSC)')
+# # plt.ylabel("$\lambda_i$")
+# plt.xlabel("Index i of Eigenvalue")
+# plt.savefig('{}\Images_plots\{}'.format(cwd, "lsc_vs_eigen"))
 # plt.show()

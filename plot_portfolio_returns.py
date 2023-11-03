@@ -18,7 +18,7 @@ x = df['Date'].to_numpy()
 strategies = df.columns.tolist()[1:]
 
 for strat in strategies:
-    if strat[0] == "_":
+    if strat[0] == "C" or strat[-1] == "m":
         ret = df['{}'.format(strat)].to_numpy()
         ret[0] = ret[0] * STARTING_CAPITAL
         y = np.cumprod(ret)
